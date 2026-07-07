@@ -1,0 +1,51 @@
+{
+  "default": "lr4xt-default",
+  "presets": [
+    {
+      "id": "lr4xt-default",
+      "name": "LR4XT Default",
+      "description": "当前编辑器默认主题：浅灰侧栏、白底内容区、黑色主按钮",
+      "siteStylesheet": "styles/main.css",
+      "variables": {
+        "--bg": "#f3f3f3",
+        "--sidebar-bg": "#ececec",
+        "--panel-bg": "#ffffff",
+        "--border": "#e5e5e5",
+        "--border-strong": "#d8d8d8",
+        "--text": "#111111",
+        "--muted": "#888888",
+        "--hover": "#f7f7f7",
+        "--active-bg": "#ffffff",
+        "--btn-primary": "#111111",
+        "--btn-primary-hover": "#333333",
+        "--success": "#2f9e44",
+        "--danger": "#e03131",
+        "--accent-soft": "#dbe4ff",
+        "--accent-text": "#364fc7"
+      }
+    },
+    {
+      "id": "lr4xt-dark",
+      "name": "LR4XT Dark",
+      "description": "深色侧栏与面板，适合夜间编写",
+      "siteStylesheet": "styles/main.css",
+      "variables": {
+        "--bg": "#0f1117",
+        "--sidebar-bg": "#171a22",
+        "--panel-bg": "#1c2030",
+        "--border": "#2a3140",
+        "--border-strong": "#3a4358",
+        "--text": "#e8eaef",
+        "--muted": "#9aa3b5",
+        "--hover": "#252b3b",
+        "--active-bg": "#252b3b",
+        "--btn-primary": "#4c6ef5",
+        "--btn-primary-hover": "#3b5bdb",
+        "--success": "#51cf66",
+        "--danger": "#ff6b6b",
+        "--accent-soft": "#2b3f8f",
+        "--accent-text": "#bac8ff"
+      }
+    }
+  ]
+}

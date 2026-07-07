@@ -1,0 +1,63 @@
+{
+  "name": "lr4xt-blog-editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "vite build && tsc -p tsconfig.server.json && tsc -p tsconfig.electron.json",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "start": "node dist/server/index.js",
+    "preview": "vite preview",
+    "electron:dev": "npm run build && ELECTRON_RUN=1 electron .",
+    "build:mac": "npm run build && electron-builder --mac"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "markdown-it": "^14.1.0",
+    "multer": "^1.4.5-lts.1",
+    "pinyin-pro": "^3.26.0",
+    "simple-git": "^3.27.0",
+    "turndown": "^7.2.4"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/markdown-it": "^14.1.2",
+    "@types/multer": "^1.4.12",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/turndown": "^5.0.6",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  },
+  "build": {
+    "appId": "com.lr4xt.blog-editor",
+    "productName": "LR4XT Blog Editor",
+    "files": [
+      "dist/**/*",
+      "config/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg"
+      ]
+    }
+  }
+}
