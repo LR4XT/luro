@@ -1,51 +1,113 @@
 {
-  "default": "lr4xt-default",
-  "presets": [
-    {
-      "id": "lr4xt-default",
-      "name": "LR4XT Default",
-      "description": "当前编辑器默认主题：浅灰侧栏、白底内容区、黑色主按钮",
-      "siteStylesheet": "styles/main.css",
-      "variables": {
-        "--bg": "#f3f3f3",
-        "--sidebar-bg": "#ececec",
-        "--panel-bg": "#ffffff",
-        "--border": "#e5e5e5",
-        "--border-strong": "#d8d8d8",
-        "--text": "#111111",
-        "--muted": "#888888",
-        "--hover": "#f7f7f7",
-        "--active-bg": "#ffffff",
-        "--btn-primary": "#111111",
-        "--btn-primary-hover": "#333333",
-        "--success": "#2f9e44",
-        "--danger": "#e03131",
-        "--accent-soft": "#dbe4ff",
-        "--accent-text": "#364fc7"
+  "editor": {
+    "default": "light",
+    "presets": [
+      {
+        "id": "light",
+        "name": "Light",
+        "variables": {
+          "--bg": "#f3f3f3",
+          "--sidebar-bg": "#ececec",
+          "--panel-bg": "#ffffff",
+          "--border": "#e5e5e5",
+          "--border-strong": "#d8d8d8",
+          "--text": "#111111",
+          "--muted": "#888888",
+          "--hover": "#f7f7f7",
+          "--active-bg": "#ffffff",
+          "--btn-primary": "#111111",
+          "--btn-primary-hover": "#333333",
+          "--success": "#2f9e44",
+          "--danger": "#e03131",
+          "--accent-soft": "#dbe4ff",
+          "--accent-text": "#364fc7"
+        }
+      },
+      {
+        "id": "dark",
+        "name": "Dark",
+        "variables": {
+          "--bg": "#0f1117",
+          "--sidebar-bg": "#171a22",
+          "--panel-bg": "#1c2030",
+          "--border": "#2a3140",
+          "--border-strong": "#3a4358",
+          "--text": "#e8eaef",
+          "--muted": "#9aa3b5",
+          "--hover": "#252b3b",
+          "--active-bg": "#252b3b",
+          "--btn-primary": "#4c6ef5",
+          "--btn-primary-hover": "#3b5bdb",
+          "--success": "#51cf66",
+          "--danger": "#ff6b6b",
+          "--accent-soft": "#2b3f8f",
+          "--accent-text": "#bac8ff"
+        }
       }
-    },
-    {
-      "id": "lr4xt-dark",
-      "name": "LR4XT Dark",
-      "description": "深色侧栏与面板，适合夜间编写",
-      "siteStylesheet": "styles/main.css",
-      "variables": {
-        "--bg": "#0f1117",
-        "--sidebar-bg": "#171a22",
-        "--panel-bg": "#1c2030",
-        "--border": "#2a3140",
-        "--border-strong": "#3a4358",
-        "--text": "#e8eaef",
-        "--muted": "#9aa3b5",
-        "--hover": "#252b3b",
-        "--active-bg": "#252b3b",
-        "--btn-primary": "#4c6ef5",
-        "--btn-primary-hover": "#3b5bdb",
-        "--success": "#51cf66",
-        "--danger": "#ff6b6b",
-        "--accent-soft": "#2b3f8f",
-        "--accent-text": "#bac8ff"
+    ]
+  },
+  "site": {
+    "default": "lr4xt-classic",
+    "presets": [
+      {
+        "id": "lr4xt-classic",
+        "name": "LR4XT Classic",
+        "description": "原版博客风格：灰绿侧栏背景图、浅灰内容区",
+        "siteStylesheet": "styles/main.css",
+        "preview": {
+          "sidebar": "#7c8280",
+          "bg": "#f8f9fa",
+          "accent": "#4c6ef5"
+        }
+      },
+      {
+        "id": "lr4xt-midnight",
+        "name": "Midnight",
+        "description": "深色侧栏与内容区，适合夜间阅读",
+        "siteStylesheet": "styles/main.css",
+        "themeOverlay": "styles/themes/midnight.css",
+        "preview": {
+          "sidebar": "#0d1017",
+          "bg": "#141820",
+          "accent": "#748ffc"
+        }
+      },
+      {
+        "id": "lr4xt-forest",
+        "name": "Forest",
+        "description": "墨绿侧栏，清新自然的阅读氛围",
+        "siteStylesheet": "styles/main.css",
+        "themeOverlay": "styles/themes/forest.css",
+        "preview": {
+          "sidebar": "#2d6a4f",
+          "bg": "#f4f7f4",
+          "accent": "#2d6a4f"
+        }
+      },
+      {
+        "id": "lr4xt-paper",
+        "name": "Paper",
+        "description": "暖色纸质感，复古书写风格",
+        "siteStylesheet": "styles/main.css",
+        "themeOverlay": "styles/themes/paper.css",
+        "preview": {
+          "sidebar": "#8b7355",
+          "bg": "#faf6f0",
+          "accent": "#b5651d"
+        }
+      },
+      {
+        "id": "lr4xt-ocean",
+        "name": "Ocean",
+        "description": "海蓝侧栏，冷静克制的排版",
+        "siteStylesheet": "styles/main.css",
+        "themeOverlay": "styles/themes/ocean.css",
+        "preview": {
+          "sidebar": "#3d5a80",
+          "bg": "#f0f4f8",
+          "accent": "#0077b6"
+        }
       }
-    }
-  ]
+    ]
+  }
 }

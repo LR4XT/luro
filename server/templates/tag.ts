@@ -5,9 +5,15 @@ import {
   SITE_URL,
 } from '../config.js';
 import { renderSidebarHtml, type SiteNavItem } from './sidebar.js';
+import { renderStylesheetLinks } from './stylesheets.js';
 import { escapeHtml } from '../utils/text.js';
 
-function pageShell(title: string, body: string, navItems: SiteNavItem[]): string {
+function pageShell(
+  title: string,
+  body: string,
+  navItems: SiteNavItem[],
+  theme: { siteStylesheet: string; themeOverlay?: string },
+): string {
   return `<!DOCTYPE html>
 <html>
   <head>
@@ -16,7 +22,7 @@ function pageShell(title: string, body: string, navItems: SiteNavItem[]): string
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
 <link rel="shortcut icon" href="${SITE_URL}/favicon.ico?v=${CACHE_VERSION}">
-<link rel="stylesheet" href="${SITE_URL}/styles/main.css">
+${renderStylesheetLinks(theme)}
 <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
   </head>
@@ -85,22 +91,24 @@ export function renderTagPage(
     featureImage?: string;
   }[],
   navItems: SiteNavItem[],
+  theme: { siteStylesheet: string; themeOverlay?: string },
 ): string {
   const body = `
           <h2 class="current-tag">标签: ${escapeHtml(tagName)}</h2>
           ${posts.map((post) => renderTagPostItem(post)).join('\n')}
         `;
-  return pageShell(tagName, body, navItems);
+  return pageShell(tagName, body, navItems, theme);
 }
 
 export function renderTagsIndexPage(
   tagLinks: string,
   navItems: SiteNavItem[],
+  theme: { siteStylesheet: string; themeOverlay?: string },
 ): string {
   const body = `
           <h2 class="tag-list-title">标签列表</h2>
           <div class="tag-list">${tagLinks}
           </div>
         `;
-  return pageShell('标签列表', body, navItems);
+  return pageShell('标签列表', body, navItems, theme);
 }

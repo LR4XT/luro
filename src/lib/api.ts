@@ -1,4 +1,4 @@
-import type { ThemeConfig, ThemePreset } from './theme';
+import type { ThemeConfig, SiteThemePreset, EditorThemePreset } from './theme';
 
 export interface PostSummary {
   title: string;
@@ -138,6 +138,30 @@ export function fetchThemes(): Promise<ThemeConfig> {
   return request('/api/themes');
 }
 
+export function applySiteTheme(themeId: string): Promise<{
+  theme: SiteThemePreset;
+  updatedFiles: number;
+  message: string;
+}> {
+  return request('/api/themes/site/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ themeId }),
+  });
+}
+
+export function importSiteTheme(name: string, css: string): Promise<{
+  theme: SiteThemePreset;
+  site: ThemeConfig['site'];
+  message: string;
+}> {
+  return request('/api/themes/site/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, css }),
+  });
+}
+
 export function fetchGitStatus(): Promise<GitStatusInfo> {
   return request('/api/git/status');
 }
@@ -230,4 +254,4 @@ export function publishPost(payload: {
   });
 }
 
-export type { ThemeConfig, ThemePreset };
+export type { ThemeConfig, SiteThemePreset, EditorThemePreset };

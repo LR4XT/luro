@@ -16,7 +16,7 @@ import {
 } from '../templates/post.js';
 import { titleToSlug, escapeHtml } from '../utils/text.js';
 import { addPostToTagPages, ensureTags, removePostFromTagPages, replacePostInTagPages } from '../tags/index.js';
-import { getThemeById, getDefaultTheme } from '../themes/index.js';
+import { getSiteThemePreset } from '../themes/site.js';
 import { readSiteNav } from '../pages/index.js';
 import { rewriteSiteUrls } from '../utils/assets.js';
 import { htmlToMarkdown } from '../html-to-markdown.js';
@@ -108,9 +108,7 @@ export async function publishPost(input: PublishInput): Promise<PublishResult> {
   const keywords = input.keywords ?? (input.tags ?? []).join(', ');
   const tagNames = input.tags ?? [];
   const resolvedTags = await ensureTags(tagNames);
-  const theme = input.themeId
-    ? (await getThemeById(input.themeId)) ?? (await getDefaultTheme())
-    : await getDefaultTheme();
+  const theme = await getSiteThemePreset(input.themeId);
   const navItems = await readSiteNav();
 
   let nextPost: { slug: string; title: string } | undefined;
@@ -140,6 +138,7 @@ export async function publishPost(input: PublishInput): Promise<PublishResult> {
     tags: resolvedTags,
     nextPost,
     siteStylesheet: theme.siteStylesheet,
+    themeOverlay: theme.themeOverlay,
     navItems,
   };
 

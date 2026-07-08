@@ -17,6 +17,11 @@ import { createTag, listTags } from './tags/index.js';
 import { listSiteNav, saveSiteNav } from './pages/index.js';
 import { readThemes } from './themes/index.js';
 import {
+  applySiteThemeToRepo,
+  getSiteThemesResponse,
+  importSiteTheme,
+} from './themes/site.js';
+import {
   getRemoteConfigPublic,
   saveAndApplyRemoteConfig,
   testRemoteConnection,
@@ -183,9 +188,48 @@ export function createApp(options: { serveStatic?: boolean } = {}): Express {
 
   app.get('/api/themes', async (_req, res) => {
     try {
-      res.json(await readThemes());
+      const config = await readThemes();
+      const siteState = await getSiteThemesResponse();
+      res.json({
+        editor: config.editor,
+        site: siteState.site,
+        activeSiteThemeId: siteState.activeSiteThemeId,
+      });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/themes/site/apply', async (req, res) => {
+    try {
+      const themeId = String(req.body.themeId ?? '');
+      if (!themeId) {
+        res.status(400).json({ error: '缺少 themeId' });
+        return;
+      }
+      const result = await applySiteThemeToRepo(themeId);
+      res.json({
+        theme: result.theme,
+        updatedFiles: result.updatedFiles,
+        message: `已将网站主题切换为 ${result.theme.name}，更新了 ${result.updatedFiles} 个页面`,
+      });
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/themes/site/import', async (req, res) => {
+    try {
+      const name = String(req.body.name ?? '');
+      const css = String(req.body.css ?? '');
+      const imported = await importSiteTheme(name, css);
+      res.json({
+        theme: imported.theme,
+        site: imported.updatedConfig.site,
+        message: `已导入主题 ${imported.theme.name}`,
+      });
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
     }
   });
 

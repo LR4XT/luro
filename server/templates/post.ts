@@ -5,6 +5,7 @@ import {
   SITE_URL,
 } from '../config.js';
 import { renderSidebarHtml, type SiteNavItem } from './sidebar.js';
+import { renderStylesheetLinks } from './stylesheets.js';
 import { escapeAttr, escapeHtml } from '../utils/text.js';
 
 export interface PostMeta {
@@ -18,6 +19,7 @@ export interface PostMeta {
   tags: { name: string; id: string }[];
   nextPost?: { slug: string; title: string };
   siteStylesheet?: string;
+  themeOverlay?: string;
   navItems: SiteNavItem[];
 }
 
@@ -64,7 +66,10 @@ function nextPostBlock(nextPost?: { slug: string; title: string }): string {
 }
 
 export function renderPostPage(meta: PostMeta): string {
-  const stylesheet = meta.siteStylesheet ?? 'styles/main.css';
+  const stylesheetLinks = renderStylesheetLinks({
+    siteStylesheet: meta.siteStylesheet ?? 'styles/main.css',
+    themeOverlay: meta.themeOverlay,
+  });
   return `<!DOCTYPE html>
 <html>
   <head>
@@ -76,7 +81,7 @@ export function renderPostPage(meta: PostMeta): string {
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
 <link rel="shortcut icon" href="${SITE_URL}/favicon.ico?v=${CACHE_VERSION}">
-<link rel="stylesheet" href="${SITE_URL}/${stylesheet}">
+${stylesheetLinks}
 
 
 

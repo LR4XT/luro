@@ -7,9 +7,11 @@ import {
   IconCompass,
   IconExternal,
   IconGlobe,
+  IconMoon,
   IconPage,
   IconPost,
   IconSetting,
+  IconSun,
   IconTag,
   IconTerminal,
   IconTheme,
@@ -19,7 +21,9 @@ export type NavItem = 'post' | 'page' | 'tag' | 'theme' | 'setting' | 'analytics
 
 interface SidebarProps {
   active: NavItem;
+  editorThemeId: 'light' | 'dark';
   onNavigate: (item: NavItem) => void;
+  onToggleEditorTheme: () => void;
   gitStatus: GitStatusInfo | null;
   consoleLogs: ConsoleLogEntry[];
 }
@@ -33,8 +37,16 @@ const NAV_ITEMS: { id: NavItem; label: string; icon: React.ReactNode; disabled?:
   { id: 'analytics', label: 'Visit Analytics', icon: <IconChart />, disabled: true },
 ];
 
-export default function Sidebar({ active, onNavigate, gitStatus, consoleLogs }: SidebarProps) {
+export default function Sidebar({
+  active,
+  editorThemeId,
+  onNavigate,
+  onToggleEditorTheme,
+  gitStatus,
+  consoleLogs,
+}: SidebarProps) {
   const latestLog = consoleLogs[0];
+  const isDark = editorThemeId === 'dark';
 
   return (
     <aside className="sidebar">
@@ -79,6 +91,22 @@ export default function Sidebar({ active, onNavigate, gitStatus, consoleLogs }: 
           </button>
         ))}
       </nav>
+
+      <div className="sidebar-appearance">
+        <span className="sidebar-appearance-label">Appearance</span>
+        <button
+          type="button"
+          className={`appearance-toggle${isDark ? ' is-dark' : ''}`}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          onClick={onToggleEditorTheme}
+        >
+          <span className="appearance-toggle-track">
+            <span className="appearance-toggle-thumb">
+              {isDark ? <IconMoon /> : <IconSun />}
+            </span>
+          </span>
+        </button>
+      </div>
 
       <button
         type="button"

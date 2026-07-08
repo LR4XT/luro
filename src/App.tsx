@@ -11,11 +11,13 @@ import ThemePanel from './components/ThemePanel';
 import {
   createTag,
   deletePosts,
+  applySiteTheme,
   fetchGitStatus,
   fetchPost,
   fetchTags,
   fetchThemes,
   generateSlug,
+  importSiteTheme,
   publishPost,
   pushRepo,
   syncRepo,
@@ -23,12 +25,17 @@ import {
   uploadImage,
   type GitStatusInfo,
   type PostSummary,
+  type SiteThemePreset,
   type TagInfo,
-  type ThemePreset,
+  type EditorThemePreset,
 } from './lib/api';
 import { insertAtCursor, todayDateString } from './lib/markdown';
 import { useConsoleLog } from './lib/console-log';
-import { applyTheme, getStoredThemeId, setStoredThemeId } from './lib/theme';
+import {
+  applyEditorTheme,
+  getStoredEditorThemeId,
+  setStoredEditorThemeId,
+} from './lib/theme';
 
 type View = 'list' | 'editor';
 type EditorPanelMode = 'edit' | 'preview';
@@ -56,8 +63,11 @@ export default function App() {
   const [nav, setNav] = useState<NavItem>('post');
   const [posts, setPosts] = useState<PostSummary[]>([]);
   const [allTags, setAllTags] = useState<TagInfo[]>([]);
-  const [themes, setThemes] = useState<ThemePreset[]>([]);
-  const [activeThemeId, setActiveThemeId] = useState('lr4xt-default');
+  const [siteThemes, setSiteThemes] = useState<SiteThemePreset[]>([]);
+  const [editorThemes, setEditorThemes] = useState<EditorThemePreset[]>([]);
+  const [activeSiteThemeId, setActiveSiteThemeId] = useState('lr4xt-classic');
+  const [editorThemeId, setEditorThemeId] = useState<'light' | 'dark'>('light');
+  const [applyingSiteTheme, setApplyingSiteTheme] = useState(false);
   const [gitStatus, setGitStatus] = useState<GitStatusInfo | null>(null);
   const [pendingPostChanges, setPendingPostChanges] = useState<Record<string, 'new' | 'modified'>>({});
   const [selectedPostSlugs, setSelectedPostSlugs] = useState<Set<string>>(new Set());
@@ -96,11 +106,15 @@ export default function App() {
 
   const loadThemes = useCallback(async () => {
     const config = await fetchThemes();
-    setThemes(config.presets);
-    const id = getStoredThemeId(config.default);
-    setActiveThemeId(id);
-    const preset = config.presets.find((t) => t.id === id) ?? config.presets[0];
-    applyTheme(preset);
+    setSiteThemes(config.site.presets);
+    setEditorThemes(config.editor.presets);
+    setActiveSiteThemeId(config.activeSiteThemeId);
+
+    const editorId = getStoredEditorThemeId(config.editor.default);
+    const editorPreset =
+      config.editor.presets.find((theme) => theme.id === editorId) ?? config.editor.presets[0];
+    setEditorThemeId(editorPreset.id === 'dark' ? 'dark' : 'light');
+    applyEditorTheme(editorPreset);
   }, []);
 
   const runSync = useCallback(async () => {
@@ -217,15 +231,46 @@ export default function App() {
     [refreshTags],
   );
 
-  const handleSelectTheme = (id: string) => {
-    const preset = themes.find((t) => t.id === id);
+  const handleToggleEditorTheme = () => {
+    const nextId = editorThemeId === 'dark' ? 'light' : 'dark';
+    const preset = editorThemes.find((theme) => theme.id === nextId);
     if (!preset) return;
-    setActiveThemeId(id);
-    setStoredThemeId(id);
-    applyTheme(preset);
-    const themeMessage = `Theme switched to ${preset.name}`;
-    setMessage(themeMessage);
-    appendLog({ level: 'info', action: 'Theme', message: themeMessage });
+    setEditorThemeId(nextId);
+    setStoredEditorThemeId(nextId);
+    applyEditorTheme(preset);
+  };
+
+  const handleSelectSiteTheme = async (id: string) => {
+    if (id === activeSiteThemeId || applyingSiteTheme) return;
+    setApplyingSiteTheme(true);
+    setError('');
+    appendLog({ level: 'info', action: 'Theme', message: '正在切换网站主题…' });
+    try {
+      const result = await applySiteTheme(id);
+      setActiveSiteThemeId(id);
+      setSiteThemes((prev) => {
+        const exists = prev.some((theme) => theme.id === result.theme.id);
+        return exists ? prev : [...prev, result.theme];
+      });
+      setMessage(result.message);
+      appendLog({ level: 'success', action: 'Theme', message: result.message });
+      await refreshGitStatus();
+    } catch (err) {
+      const msg = (err as Error).message;
+      setError(msg);
+      appendLog({ level: 'error', action: 'Theme', message: msg });
+    } finally {
+      setApplyingSiteTheme(false);
+    }
+  };
+
+  const handleImportSiteTheme = async (name: string, css: string) => {
+    appendLog({ level: 'info', action: 'Theme', message: `正在导入主题 ${name}…` });
+    const result = await importSiteTheme(name, css);
+    setSiteThemes(result.site.presets);
+    setMessage(result.message);
+    appendLog({ level: 'success', action: 'Theme', message: result.message });
+    await handleSelectSiteTheme(result.theme.id);
   };
 
   const loadPostForEdit = useCallback(async (postSlug: string) => {
@@ -389,7 +434,7 @@ export default function App() {
         featureImage: featureImage.trim() || undefined,
         push: false,
         update: Boolean(editingSlug),
-        themeId: activeThemeId,
+        themeId: activeSiteThemeId,
       });
       setPendingPostChanges((prev) => ({
         ...prev,
@@ -420,7 +465,9 @@ export default function App() {
     <div className="shell">
       <Sidebar
         active={nav}
+        editorThemeId={editorThemeId}
         onNavigate={handleNavigate}
+        onToggleEditorTheme={handleToggleEditorTheme}
         gitStatus={gitStatus}
         consoleLogs={consoleLogs}
       />
@@ -433,12 +480,18 @@ export default function App() {
         ) : nav === 'page' ? (
           <PageManager />
         ) : nav === 'theme' ? (
-          <ThemePanel themes={themes} activeId={activeThemeId} onSelect={handleSelectTheme} />
+          <ThemePanel
+            themes={siteThemes}
+            activeId={activeSiteThemeId}
+            applying={applyingSiteTheme}
+            onSelect={(id) => void handleSelectSiteTheme(id)}
+            onImport={handleImportSiteTheme}
+          />
         ) : nav === 'setting' ? (
           <RemoteSettings
             gitStatus={gitStatus}
             syncMessage={syncMessage}
-            themeName={themes.find((t) => t.id === activeThemeId)?.name}
+            themeName={siteThemes.find((theme) => theme.id === activeSiteThemeId)?.name}
             syncing={syncing}
             onSync={runSync}
             onSaved={refreshGitStatus}

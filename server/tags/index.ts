@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { EDITOR_ROOT, POST_DIR, REPO_ROOT } from '../config.js';
 import { readSiteNav } from '../pages/index.js';
+import { getSiteThemePreset } from '../themes/site.js';
 import { renderTagIndexLink, renderTagPage, renderTagPostItem } from '../templates/tag.js';
 
 const TAGS_FILE = path.join(EDITOR_ROOT, 'config', 'tags.json');
@@ -77,7 +78,12 @@ export async function createTag(name: string): Promise<TagInfo> {
 
   await fs.mkdir(path.join(TAG_DIR, id), { recursive: true });
   const navItems = await readSiteNav();
-  await fs.writeFile(path.join(TAG_DIR, id, 'index.html'), renderTagPage(trimmed, id, [], navItems), 'utf-8');
+  const theme = await getSiteThemePreset();
+  await fs.writeFile(
+    path.join(TAG_DIR, id, 'index.html'),
+    renderTagPage(trimmed, id, [], navItems, theme),
+    'utf-8',
+  );
   await appendTagToIndex(trimmed, id);
 
   return { name: trimmed, id, postCount: 0 };
@@ -121,6 +127,7 @@ export async function addPostToTagPages(
   const tags = await ensureTags(tagNames);
   const articleHtml = renderTagPostItem(post).trim();
   const navItems = await readSiteNav();
+  const theme = await getSiteThemePreset();
 
   for (const tag of tags) {
     const tagPagePath = path.join(TAG_DIR, tag.id, 'index.html');
@@ -128,7 +135,7 @@ export async function addPostToTagPages(
     try {
       html = await fs.readFile(tagPagePath, 'utf-8');
     } catch {
-      html = renderTagPage(tag.name, tag.id, [], navItems);
+      html = renderTagPage(tag.name, tag.id, [], navItems, theme);
       await fs.mkdir(path.join(TAG_DIR, tag.id), { recursive: true });
     }
 
@@ -137,7 +144,7 @@ export async function addPostToTagPages(
     const marker = `<h2 class="current-tag">标签: ${tag.name}</h2>`;
     const idx = html.indexOf(marker);
     if (idx === -1) {
-      await fs.writeFile(tagPagePath, renderTagPage(tag.name, tag.id, [post], navItems), 'utf-8');
+      await fs.writeFile(tagPagePath, renderTagPage(tag.name, tag.id, [post], navItems, theme), 'utf-8');
       continue;
     }
 
