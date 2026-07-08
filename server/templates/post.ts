@@ -134,10 +134,6 @@ var app = new Vue({
 
 </script>
 
-
-
-
-
   </body>
 </html>
 `;

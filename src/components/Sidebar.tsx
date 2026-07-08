@@ -2,7 +2,6 @@ import type { GitStatusInfo } from '../lib/api';
 import type { ConsoleLogEntry } from '../lib/console-log';
 import {
   IconBook,
-  IconChart,
   IconChevronDown,
   IconCompass,
   IconExternal,
@@ -17,7 +16,7 @@ import {
   IconTheme,
 } from './Icons';
 
-export type NavItem = 'post' | 'page' | 'tag' | 'theme' | 'setting' | 'analytics' | 'console';
+export type NavItem = 'post' | 'page' | 'tag' | 'theme' | 'setting' | 'console';
 
 interface SidebarProps {
   active: NavItem;
@@ -34,7 +33,6 @@ const NAV_ITEMS: { id: NavItem; label: string; icon: React.ReactNode; disabled?:
   { id: 'tag', label: 'Tag', icon: <IconTag /> },
   { id: 'theme', label: 'Theme', icon: <IconTheme /> },
   { id: 'setting', label: 'Setting', icon: <IconSetting /> },
-  { id: 'analytics', label: 'Visit Analytics', icon: <IconChart />, disabled: true },
 ];
 
 export default function Sidebar({
