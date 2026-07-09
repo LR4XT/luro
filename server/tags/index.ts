@@ -16,8 +16,12 @@ export interface TagInfo {
 }
 
 export async function readTagMap(): Promise<Record<string, string>> {
-  const raw = await fs.readFile(TAGS_FILE, 'utf-8');
-  return JSON.parse(raw) as Record<string, string>;
+  try {
+    const raw = await fs.readFile(TAGS_FILE, 'utf-8');
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
 }
 
 async function writeTagMap(map: Record<string, string>): Promise<void> {

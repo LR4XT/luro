@@ -98,7 +98,7 @@ textarea {
 
 .site-selector {
   display: grid;
-  grid-template-columns: 28px 1fr auto auto;
+  grid-template-columns: 28px 1fr auto;
   align-items: center;
   gap: 8px;
   padding: 4px 0;
@@ -112,8 +112,9 @@ textarea {
   color: var(--accent-text, #364fc7);
   display: grid;
   place-items: center;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .site-name {

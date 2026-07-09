@@ -59,7 +59,7 @@ export function sanitizeGitEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return clean;
 }
 
-const DEFAULT_REPO = 'https://github.com/LR4XT/lr4xt.github.io.git';
+const DEFAULT_REPO = '';
 
 export async function ensureCredentialsDir(): Promise<void> {
   await fs.mkdir(CREDENTIALS_DIR, { mode: 0o700, recursive: true });

@@ -51,7 +51,7 @@
     "presets": [
       {
         "id": "lr4xt-classic",
-        "name": "LR4XT Classic",
+        "name": "Classic",
         "description": "原版博客风格：灰绿侧栏背景图、浅灰内容区",
         "siteStylesheet": "styles/main.css",
         "preview": {

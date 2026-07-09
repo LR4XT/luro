@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="18" flood-color="#000000" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+  <circle cx="512" cy="512" r="470" fill="#ffffff" filter="url(#shadow)"/>
+  <g transform="translate(512 500)">
+    <!-- Shared LR spine: exactly 2 vertical lines (left + right edge of one stem) -->
+    <rect x="-118" y="-190" width="56" height="250" fill="#38bdf8" stroke="#111111" stroke-width="8"/>
+    <!-- L foot -->
+    <rect x="-118" y="20" width="150" height="56" fill="#38bdf8" stroke="#111111" stroke-width="8"/>
+    <!-- R bowl -->
+    <path d="M -62 -190 H 34 A 96 96 0 0 1 34 2 H -62 Z" fill="#38bdf8" stroke="#111111" stroke-width="8"/>
+    <!-- R leg -->
+    <path d="M -10 2 L 118 190 L 62 190 L -10 56 Z" fill="#38bdf8" stroke="#111111" stroke-width="8"/>
+    <!-- Blog editor: text lines + pen -->
+    <g transform="translate(-150 210)">
+      <line x1="0" y1="0" x2="120" y2="0" stroke="#111111" stroke-width="10" stroke-linecap="round"/>
+      <line x1="0" y1="28" x2="96" y2="28" stroke="#111111" stroke-width="10" stroke-linecap="round"/>
+      <line x1="0" y1="56" x2="72" y2="56" stroke="#111111" stroke-width="10" stroke-linecap="round"/>
+      <path d="M 150 8 L 188 46 L 166 68 L 128 30 Z" fill="#38bdf8" stroke="#111111" stroke-width="8" stroke-linejoin="round"/>
+      <circle cx="156" cy="14" r="8" fill="#ffffff" stroke="#111111" stroke-width="4"/>
+    </g>
+  </g>
+</svg>

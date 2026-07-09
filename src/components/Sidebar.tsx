@@ -4,7 +4,6 @@ import {
   IconBook,
   IconChevronDown,
   IconCompass,
-  IconExternal,
   IconGlobe,
   IconMoon,
   IconPage,
@@ -61,18 +60,9 @@ export default function Sidebar({
       </div>
 
       <div className="site-selector">
-        <div className="site-avatar">L</div>
-        <span className="site-name">LR4XT</span>
+        <div className="site-avatar">LR</div>
+        <span className="site-name">LR Blog</span>
         <IconChevronDown />
-        <a
-          className="site-link"
-          href="https://lr4xt.com"
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Open site"
-        >
-          <IconExternal />
-        </a>
       </div>
 
       <nav className="sidebar-nav">

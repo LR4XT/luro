@@ -28,7 +28,7 @@ export default function RemoteSettings({
   onSaved,
 }: RemoteSettingsProps) {
   const [authType, setAuthType] = useState<RemoteAuthType>('http');
-  const [repoUrl, setRepoUrl] = useState('https://github.com/LR4XT/lr4xt.github.io.git');
+  const [repoUrl, setRepoUrl] = useState('');
   const [httpUsername, setHttpUsername] = useState('');
   const [httpPassword, setHttpPassword] = useState('');
   const [sshPrivateKey, setSshPrivateKey] = useState('');
@@ -154,7 +154,7 @@ export default function RemoteSettings({
       <div className="setting-section">
         <h2>Site repository</h2>
         <p className="setting-hint">
-          本地博客静态站点目录（lr4xt.github.io 克隆）。修改后需重启应用生效。
+          本地博客静态站点目录（GitHub Pages 仓库克隆）。修改后需重启应用生效。
         </p>
         <label className="field-block">
           Site repository path
@@ -162,7 +162,7 @@ export default function RemoteSettings({
             <input
               value={siteRepoPath}
               onChange={(e) => setSiteRepoPath(e.target.value)}
-              placeholder={currentRepoRoot || '/path/to/lr4xt.github.io'}
+              placeholder={currentRepoRoot || '/path/to/your-blog-site'}
             />
             {window.electron?.pickFolder && (
               <button type="button" className="btn-ghost" onClick={() => void handleBrowseSiteRepo()}>
@@ -213,7 +213,7 @@ export default function RemoteSettings({
           <input
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
-            placeholder="https://github.com/LR4XT/lr4xt.github.io.git"
+            placeholder="https://github.com/username/your-blog-site.git"
           />
         </label>
 
@@ -236,7 +236,7 @@ export default function RemoteSettings({
                 placeholder={flags.hasHttpPassword ? '已保存，留空则保持不变' : 'GitHub Personal Access Token（非登录密码）'}
               />
             </label>
-            <p className="field-hint">Fine-grained Token 粘贴到此处即可，Username 仍填 lr4xt；编辑器会自动用 x-access-token 认证。</p>
+            <p className="field-hint">Fine-grained Token 粘贴到此处即可；使用 Token 时 Username 可填 GitHub 用户名，编辑器会自动处理 x-access-token 认证。</p>
           </div>
         ) : (
           <div className="field-grid">

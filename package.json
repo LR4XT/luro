@@ -1,11 +1,8 @@
 {
   "name": "lr4xt-blog-editor",
   "version": "0.1.0",
-  "description": "Local Markdown blog editor for lr4xt.com — write, preview, and publish static HTML with Git push.",
-  "author": {
-    "name": "lr4xt",
-    "email": "lr4xt1@163.com"
-  },
+  "description": "Local Markdown blog editor — write, preview, and publish static HTML with Git push.",
+  "author": "LR Blog Editor",
   "private": true,
   "type": "module",
   "main": "dist/electron/main.js",
@@ -58,6 +55,7 @@
     "files": [
       "dist/**/*",
       "config/**/*",
+      "!config/tags.json",
       "package.json"
     ],
     "directories": {

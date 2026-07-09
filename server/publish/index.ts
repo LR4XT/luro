@@ -6,6 +6,7 @@ import {
   DRAFTS_DIR,
   INDEX_FILE,
   POST_DIR,
+  SITE_URL,
 } from '../config.js';
 import { extractAbstract, markdownToHtml } from '../markdown.js';
 import {
@@ -572,7 +573,7 @@ function renderNextPostBlock(nextPost?: { slug: string; title: string }): string
   return `
               <div class="next-post">
                 <div class="next">下一篇</div>
-                <a href="https://lr4xt.com/post/${nextPost.slug}/">
+                <a href="${SITE_URL}/post/${nextPost.slug}/">
                   <h3 class="post-title">
                     ${escapeHtml(nextPost.title)}
                   </h3>

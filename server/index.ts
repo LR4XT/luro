@@ -11,6 +11,7 @@ import {
   getPostImagesDir,
   getRepoRoot,
   IS_ELECTRON,
+  SITE_URL,
 } from './config.js';
 import { getPostDetail, listExistingPosts, publishPost, deletePosts } from './publish/index.js';
 import { createTag, listTags } from './tags/index.js';
@@ -287,7 +288,7 @@ export function createApp(options: { serveStatic?: boolean } = {}): Express {
     res.json({
       filename,
       url: `/post-images/${filename}`,
-      absoluteUrl: `https://lr4xt.com/post-images/${filename}`,
+      absoluteUrl: `${SITE_URL}/post-images/${filename}`,
       markdown: `![](/post-images/${filename})`,
     });
   });

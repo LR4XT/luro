@@ -66,9 +66,9 @@ function defaultCandidates(): string[] {
   const home = process.env.HOME ?? '';
   const editorRoot = getEditorRoot();
   return [
-    path.join(editorRoot, '..', 'lr4xt.github.io'),
-    path.join(home, 'personal_code', 'lr4xt.github.io'),
-    path.join(home, 'Documents', 'lr4xt.github.io'),
+    path.join(editorRoot, '..'),
+    path.join(home, 'Documents', 'blog-site'),
+    path.join(home, 'Sites', 'blog'),
   ];
 }
 
@@ -98,7 +98,7 @@ async function resolveSiteRepo(): Promise<string> {
   }
 
   const { canceled, filePaths } = await dialog.showOpenDialog({
-    title: '选择博客静态站点目录（lr4xt.github.io）',
+    title: '选择博客静态站点目录',
     properties: ['openDirectory'],
     message: '请选择包含 index.html、post/ 和 atom.xml 的仓库目录',
   });

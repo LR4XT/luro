@@ -1,3 +1,6 @@
+# Local tag registry (user-specific; not bundled in releases)
+config/tags.json
+
 # Dependencies
 node_modules/
 

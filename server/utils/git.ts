@@ -246,7 +246,7 @@ export async function pullLatest(): Promise<PullResult> {
     if (/permission denied|publickey|passphrase|authentication|401|403|invalid username|not supported for git/i.test(message)) {
       return {
         success: false,
-        summary: '认证失败：请确认 Password 栏填的是 GitHub Token（非登录密码），且 Token 对 lr4xt.github.io 有 Contents 读写权限',
+        summary: '认证失败：请确认 Password 栏填的是 GitHub Token（非登录密码），且 Token 对目标仓库有 Contents 读写权限',
         branch,
       };
     }

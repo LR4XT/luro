@@ -4,10 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export const SITE_URL = 'https://lr4xt.com';
-export const SITE_TITLE = 'LR4XT';
-export const SITE_DESCRIPTION =
-  '<p style="text-align: center;font-size: 13px;">总有更值得做的事</p>';
 export const CACHE_VERSION = Date.now().toString();
 
 export const IS_ELECTRON = process.env.ELECTRON_RUN === '1';
@@ -57,6 +53,15 @@ function readConfiguredRepoPath(): string | null {
   return null;
 }
 
+function repoCandidates(): string[] {
+  const home = process.env.HOME ?? '';
+  return [
+    path.join(EDITOR_ROOT, '..'),
+    path.join(home, 'Documents', 'blog-site'),
+    path.join(home, 'Sites', 'blog'),
+  ];
+}
+
 function resolveRepoRoot(): string {
   if (process.env.SITE_REPO) {
     const configured = path.resolve(process.env.SITE_REPO);
@@ -69,23 +74,49 @@ function resolveRepoRoot(): string {
   const configured = readConfiguredRepoPath();
   if (configured) return configured;
 
-  const home = process.env.HOME ?? '';
-  const candidates = [
-    path.join(EDITOR_ROOT, '..', 'lr4xt.github.io'),
-    path.join(EDITOR_ROOT, '..'),
-    path.join(home, 'personal_code', 'lr4xt.github.io'),
-    path.join(home, 'Documents', 'lr4xt.github.io'),
-  ];
-
-  for (const candidate of candidates) {
+  for (const candidate of repoCandidates()) {
     if (isSiteRepo(candidate)) {
       return path.resolve(candidate);
     }
   }
 
   throw new Error(
-    '找不到 lr4xt.github.io 静态站点。请在 Setting 中设置 Site repository path，或设置 SITE_REPO 环境变量。',
+    '找不到博客静态站点目录。请在 Setting 中设置 Site repository path，或设置 SITE_REPO 环境变量。',
   );
+}
+
+function detectSiteMeta(repoRoot: string): {
+  url: string;
+  title: string;
+  description: string;
+} {
+  let url = 'https://example.com';
+  let title = 'Blog';
+  let description = '<p></p>';
+
+  try {
+    const html = fs.readFileSync(path.join(repoRoot, 'index.html'), 'utf-8');
+    const titleMatch = html.match(/<h1 class="site-title">\s*([\s\S]*?)<\/h1>/i);
+    if (titleMatch?.[1]) {
+      title = titleMatch[1].replace(/\s+/g, ' ').trim();
+    }
+
+    const siteLinkMatch =
+      html.match(/<a class="site-title-container" href="(https:\/\/[^"]+)"/i) ??
+      html.match(/href="(https:\/\/[^"/]+)\/post\//i);
+    if (siteLinkMatch?.[1]) {
+      url = siteLinkMatch[1].replace(/\/+$/, '');
+    }
+
+    const descMatch = html.match(/class="description"[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i);
+    if (descMatch?.[1]) {
+      description = descMatch[1].trim();
+    }
+  } catch {
+    // use defaults
+  }
+
+  return { url, title, description };
 }
 
 export function getRepoRoot(): string {
@@ -93,6 +124,11 @@ export function getRepoRoot(): string {
 }
 
 export const REPO_ROOT = getRepoRoot();
+const siteMeta = detectSiteMeta(REPO_ROOT);
+export const SITE_URL = siteMeta.url;
+export const SITE_TITLE = siteMeta.title;
+export const SITE_DESCRIPTION = siteMeta.description;
+
 export const POST_DIR = path.join(REPO_ROOT, 'post');
 export const POST_IMAGES_DIR = path.join(REPO_ROOT, 'post-images');
 export const DRAFTS_DIR = path.join(USER_DATA_ROOT, 'drafts');

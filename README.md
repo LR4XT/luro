@@ -47,6 +47,27 @@ npm run build:mac
 
 产物在 `release/` 目录：`LR Blog Editor.app` 与 `.dmg` 安装包。
 
+### 从 Release 安装后无法打开？
+
+通过浏览器下载的未签名应用，macOS 可能提示 **「已损坏，无法打开」**（并非文件真的损坏，是 Gatekeeper 隔离标记）。
+
+任选一种方式解决：
+
+**方式 1（推荐）** — 终端移除隔离属性：
+
+```bash
+xattr -cr "/Applications/LR Blog Editor.app"
+```
+
+**方式 2** — 右键打开：
+
+1. 在「应用程序」中找到 **LR Blog Editor**
+2. **右键 → 打开** → 再次点 **打开**
+
+**方式 3** — 系统设置：
+
+系统设置 → 隐私与安全性 → 找到被拦截提示 → **仍要打开**
+
 ### 桌面应用说明
 
 - 应用内嵌 Express API，界面加载 `http://127.0.0.1:3456`

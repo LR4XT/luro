@@ -52,7 +52,7 @@ export default function ThemePanel({
       <header className="panel-header">
         <div>
           <h1>Theme</h1>
-          <p className="panel-subtitle">切换博客网站（lr4xt.com）的视觉主题，会更新站点内所有 HTML 页面</p>
+          <p className="panel-subtitle">切换博客网站的视觉主题，会更新站点内所有 HTML 页面</p>
         </div>
       </header>
 
