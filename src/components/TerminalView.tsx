@@ -36,7 +36,7 @@ export default function TerminalView({ logs, onClear }: TerminalViewProps) {
           <span className="terminal-dot terminal-dot-red" />
           <span className="terminal-dot terminal-dot-yellow" />
           <span className="terminal-dot terminal-dot-green" />
-          <span className="terminal-title">lr4xt-blog-editor — zsh</span>
+          <span className="terminal-title">lr-blog-editor — zsh</span>
         </div>
         <button
           type="button"
@@ -50,7 +50,7 @@ export default function TerminalView({ logs, onClear }: TerminalViewProps) {
 
       <div ref={bodyRef} className="terminal-body">
         <div className="terminal-line terminal-line-muted">
-          LR4XT Blog Editor · 操作日志终端
+          LR Blog Editor · 操作日志终端
         </div>
         <div className="terminal-line terminal-line-muted">
           记录 Sync、Push、Save、Delete 等操作输出

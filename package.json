@@ -52,7 +52,7 @@
   },
   "build": {
     "appId": "com.lr4xt.blog-editor",
-    "productName": "LR4XT Blog Editor",
+    "productName": "LR Blog Editor",
     "icon": "build/icon.icns",
     "afterSign": "scripts/notarize.cjs",
     "files": [

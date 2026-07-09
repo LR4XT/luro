@@ -1,4 +1,4 @@
-# LR4XT 博客编辑器
+# LR Blog Editor
 
 本地 Markdown 博客编写器，生成与 [lr4xt.com](https://lr4xt.com) 相同结构的静态 HTML，并支持推送到 `git@github.com:LR4XT/lr4xt.github.io.git`。
 
@@ -45,7 +45,7 @@ npm run electron:dev
 npm run build:mac
 ```
 
-产物在 `release/` 目录：`LR4XT Blog Editor.app` 与 `.dmg` 安装包。
+产物在 `release/` 目录：`LR Blog Editor.app` 与 `.dmg` 安装包。
 
 ### 桌面应用说明
 
