@@ -15,10 +15,10 @@
     "start": "node dist/server/index.js",
     "preview": "vite preview",
     "electron:dev": "npm run build && ELECTRON_RUN=1 electron .",
-    "build:mac": "npm run build && electron-builder --mac --x64 --arm64",
-    "build:mac:signed": "npm run build && electron-builder --mac --x64 --arm64",
-    "build:win": "npm run build && electron-builder --win --x64",
-    "build:all": "npm run build && electron-builder --mac --x64 --arm64 --win --x64",
+    "build:mac": "npm run build && electron-builder --mac --x64 --arm64 && bash scripts/rename-intel-dmg.sh",
+    "build:mac:signed": "npm run build && electron-builder --mac --x64 --arm64 && bash scripts/rename-intel-dmg.sh",
+    "build:win": "npm run build && electron-builder --win --x64 --arm64",
+    "build:all": "npm run build && electron-builder --mac --x64 --arm64 --win --x64 --arm64 && bash scripts/rename-intel-dmg.sh",
     "staple:dmg": "bash scripts/staple-dmg.sh"
   },
   "dependencies": {
@@ -65,7 +65,8 @@
       "buildResources": "build"
     },
     "dmg": {
-      "sign": true
+      "sign": true,
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "mac": {
       "category": "public.app-category.productivity",
@@ -82,10 +83,11 @@
     },
     "win": {
       "icon": "build/icon.png",
+      "artifactName": "${productName}-${version}-${arch}-${os}.${ext}",
       "target": [
         {
           "target": "zip",
-          "arch": ["x64"]
+          "arch": ["x64", "arm64"]
         }
       ]
     }
