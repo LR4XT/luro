@@ -119,7 +119,7 @@ async function createWindow(): Promise<void> {
     height: 860,
     minWidth: 960,
     minHeight: 640,
-    title: 'LR Blog Editor',
+    title: 'luro',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

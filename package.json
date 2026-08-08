@@ -1,8 +1,8 @@
 {
-  "name": "lr4xt-blog-editor",
-  "version": "0.1.0",
+  "name": "luro",
+  "version": "0.2.0",
   "description": "Local Markdown blog editor — write, preview, and publish static HTML with Git push.",
-  "author": "LR Blog Editor",
+  "author": "luro",
   "private": true,
   "type": "module",
   "main": "dist/electron/main.js",
@@ -15,8 +15,10 @@
     "start": "node dist/server/index.js",
     "preview": "vite preview",
     "electron:dev": "npm run build && ELECTRON_RUN=1 electron .",
-    "build:mac": "npm run build && electron-builder --mac",
-    "build:mac:signed": "npm run build && electron-builder --mac",
+    "build:mac": "npm run build && electron-builder --mac --x64 --arm64",
+    "build:mac:signed": "npm run build && electron-builder --mac --x64 --arm64",
+    "build:win": "npm run build && electron-builder --win --x64",
+    "build:all": "npm run build && electron-builder --mac --x64 --arm64 --win --x64",
     "staple:dmg": "bash scripts/staple-dmg.sh"
   },
   "dependencies": {
@@ -48,8 +50,8 @@
     "vite": "^6.0.7"
   },
   "build": {
-    "appId": "com.lr4xt.blog-editor",
-    "productName": "LR Blog Editor",
+    "appId": "com.lr4xt.luro",
+    "productName": "luro",
     "icon": "build/icon.icns",
     "afterSign": "scripts/notarize.cjs",
     "files": [
@@ -72,7 +74,19 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.inherit.plist",
       "target": [
-        "dmg"
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "zip",
+          "arch": ["x64"]
+        }
       ]
     }
   }
