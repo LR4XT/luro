@@ -243,17 +243,17 @@ export async function pullLatest(): Promise<PullResult> {
         branch,
       };
     }
-    if (/permission denied|publickey|passphrase|authentication|401|403|invalid username|not supported for git/i.test(message)) {
+    if (/permission denied|publickey|passphrase|authentication|401|403|invalid username|not supported for git|invalid format/i.test(message)) {
       return {
         success: false,
-        summary: '认证失败：请确认 Password 栏填的是 GitHub Token（非登录密码），且 Token 对目标仓库有 Contents 读写权限',
+        summary: '认证失败：SSH 请确认粘贴的是私钥（非 .pub）；HTTP 请确认 Password 填的是 GitHub Token',
         branch,
       };
     }
     if (/couldn'?t connect|timed out|超时|connection refused|network is unreachable/i.test(message)) {
       return {
         success: false,
-        summary: '无法连接 github.com（网络超时）。请检查代理/VPN，或在终端执行 curl -I https://github.com 验证网络',
+        summary: '无法连接 GitHub（git 超时）。SSH 走 22 端口，与 curl https://github.com 不是同一条路径；请检查系统代理或改用 HTTP + Token',
         branch,
       };
     }

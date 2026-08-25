@@ -1,94 +1,50 @@
 import { useRef, type RefObject } from 'react';
-import { insertAtCursor } from '../lib/markdown';
+import type { MarkdownEditorHandle } from './MarkdownEditor';
 
 interface ToolbarProps {
-  value: string;
-  onChange: (value: string) => void;
-  textareaRef: RefObject<HTMLTextAreaElement>;
+  editorRef: RefObject<MarkdownEditorHandle | null>;
   onUploadImage: (file: File) => Promise<void>;
 }
 
-function wrapSelection(
-  value: string,
-  onChange: (v: string) => void,
-  textarea: HTMLTextAreaElement | null,
-  before: string,
-  after: string,
-) {
-  if (!textarea) return;
-  const { selectionStart, selectionEnd } = textarea;
-  const { nextValue, cursor } = insertAtCursor(
-    value,
-    selectionStart,
-    selectionEnd,
-    '',
-    { before, after },
-  );
-  onChange(nextValue);
-  requestAnimationFrame(() => {
-    textarea.focus();
-    textarea.setSelectionRange(cursor, cursor);
-  });
-}
-
-export default function Toolbar({
-  value,
-  onChange,
-  textareaRef,
-  onUploadImage,
-}: ToolbarProps) {
+export default function Toolbar({ editorRef, onUploadImage }: ToolbarProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const fontSizeRef = useRef<HTMLInputElement>(null);
 
-  const insertFontSize = () => {
-    const px = fontSizeRef.current?.value || '20';
-    wrapSelection(value, onChange, textareaRef.current, `{${px}}`, '{/}');
+  const wrap = (before: string, after: string) => {
+    editorRef.current?.wrapSelection(before, after);
   };
 
-  const insertLine = (line: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    const { selectionStart, selectionEnd } = textarea;
-    const { nextValue, cursor } = insertAtCursor(
-      value,
-      selectionStart,
-      selectionEnd,
-      line,
-    );
-    onChange(nextValue);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(cursor, cursor);
-    });
+  const insert = (text: string) => {
+    editorRef.current?.insertText(text);
+  };
+
+  const insertFontSize = () => {
+    const px = fontSizeRef.current?.value || '20';
+    wrap(`{${px}}`, '{/}');
   };
 
   return (
     <div className="toolbar">
       <div className="toolbar-group">
-        <button type="button" onClick={() => wrapSelection(value, onChange, textareaRef.current, '**', '**')}>
+        <button type="button" onClick={() => wrap('**', '**')}>
           粗体
         </button>
-        <button type="button" onClick={() => wrapSelection(value, onChange, textareaRef.current, '*', '*')}>
+        <button type="button" onClick={() => wrap('*', '*')}>
           斜体
         </button>
-        <button type="button" onClick={() => insertLine('\n## 标题\n')}>
+        <button type="button" onClick={() => insert('\n## 标题\n')}>
           H2
         </button>
-        <button type="button" onClick={() => insertLine('\n### 小标题\n')}>
+        <button type="button" onClick={() => insert('\n### 小标题\n')}>
           H3
         </button>
-        <button
-          type="button"
-          onClick={() =>
-            wrapSelection(value, onChange, textareaRef.current, '[', '](https://)')
-          }
-        >
+        <button type="button" onClick={() => wrap('[', '](https://)')}>
           链接
         </button>
-        <button type="button" onClick={() => insertLine('\n> 引用\n')}>
+        <button type="button" onClick={() => insert('\n> 引用\n')}>
           引用
         </button>
-        <button type="button" onClick={() => insertLine('\n```\ncode\n```\n')}>
+        <button type="button" onClick={() => insert('\n```\ncode\n```\n')}>
           代码
         </button>
       </div>
@@ -102,18 +58,7 @@ export default function Toolbar({
         <button type="button" onClick={insertFontSize}>
           应用字号
         </button>
-        <button
-          type="button"
-          onClick={() =>
-            wrapSelection(
-              value,
-              onChange,
-              textareaRef.current,
-              '<span style="font-size:20px">',
-              '</span>',
-            )
-          }
-        >
+        <button type="button" onClick={() => wrap('<span style="font-size:20px">', '</span>')}>
           HTML 字号
         </button>
       </div>
@@ -124,20 +69,27 @@ export default function Toolbar({
           type="file"
           accept="image/*"
           hidden
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
+          onChange={async (event) => {
+            const file = event.target.files?.[0];
             if (!file) return;
             await onUploadImage(file);
-            e.target.value = '';
+            event.target.value = '';
           }}
         />
         <button type="button" onClick={() => fileRef.current?.click()}>
           插入图片
         </button>
+        <button type="button" onClick={() => editorRef.current?.foldAll()}>
+          折叠全部
+        </button>
+        <button type="button" onClick={() => editorRef.current?.unfoldAll()}>
+          展开全部
+        </button>
       </div>
 
       <span className="toolbar-hint">
-        字号：<code>{'{20}大号文字{/}'}</code> · 拖拽图片到编辑器也可上传
+        点击标题左侧 ▾ 可折叠该节 · 光标所在行显示 Markdown 原文 · 字号：
+        <code>{'{20}大号文字{/}'}</code>
       </span>
     </div>
   );

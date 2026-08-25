@@ -1,9 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { EDITOR_ROOT, POST_DIR, REPO_ROOT } from '../config.js';
+import { DRAFTS_DIR, EDITOR_ROOT, POST_DIR, REPO_ROOT, SITE_TITLE } from '../config.js';
 import { readSiteNav } from '../pages/index.js';
 import { getSiteThemePreset } from '../themes/site.js';
 import { renderTagIndexLink, renderTagPage, renderTagPostItem } from '../templates/tag.js';
+import { escapeAttr, escapeHtml } from '../utils/text.js';
 
 const TAGS_FILE = path.join(EDITOR_ROOT, 'config', 'tags.json');
 const TAGS_INDEX = path.join(REPO_ROOT, 'tags', 'index.html');
@@ -15,13 +16,127 @@ export interface TagInfo {
   postCount: number;
 }
 
-export async function readTagMap(): Promise<Record<string, string>> {
+function decodeBasicEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+export function parseTagIndexHtml(html: string): Record<string, string> {
+  const map: Record<string, string> = {};
+  const tagLinkRe =
+    /<a\s+[^>]*class="tag"[^>]*href="[^"]*\/tag\/([^/"']+)\/?"[^>]*>\s*([^<]+?)\s*<\/a>/gi;
+  for (const match of html.matchAll(tagLinkRe)) {
+    const id = match[1]?.trim();
+    const name = decodeBasicEntities(match[2]?.trim() ?? '');
+    if (id && name) map[name] = id;
+  }
+  return map;
+}
+
+function tagMapsEqual(a: Record<string, string>, b: Record<string, string>): boolean {
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => a[key] === b[key]);
+}
+
+function mergeTagMaps(
+  local: Record<string, string>,
+  site: Record<string, string>,
+): Record<string, string> {
+  const usedIds = new Set<string>();
+  const merged: Record<string, string> = {};
+  for (const [name, id] of Object.entries(site)) {
+    merged[name] = id;
+    usedIds.add(id);
+  }
+  for (const [name, id] of Object.entries(local)) {
+    if (usedIds.has(id) || merged[name]) continue;
+    merged[name] = id;
+    usedIds.add(id);
+  }
+  return merged;
+}
+
+function findNameById(map: Record<string, string>, id: string): string | undefined {
+  return Object.entries(map).find(([, tagId]) => tagId === id)?.[0];
+}
+
+function assertSafeTagId(id: string): string {
+  const trimmed = id.trim();
+  if (!/^[A-Za-z0-9]+$/.test(trimmed)) {
+    throw new Error('无效的标签 ID');
+  }
+  return trimmed;
+}
+
+function rewriteNameList(raw: string, from: string, to: string | null): string {
+  const next = raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => (part === from ? to : part))
+    .filter((part): part is string => Boolean(part));
+  return [...new Set(next)].join(', ');
+}
+
+async function readLocalTagMap(): Promise<Record<string, string>> {
   try {
     const raw = await fs.readFile(TAGS_FILE, 'utf-8');
     return JSON.parse(raw) as Record<string, string>;
   } catch {
     return {};
   }
+}
+
+async function readSiteTagMap(): Promise<Record<string, string>> {
+  const map: Record<string, string> = {};
+
+  try {
+    const html = await fs.readFile(TAGS_INDEX, 'utf-8');
+    Object.assign(map, parseTagIndexHtml(html));
+  } catch {
+    // tags/index.html may be missing on a brand-new site
+  }
+
+  let ids: string[];
+  try {
+    ids = await fs.readdir(TAG_DIR);
+  } catch {
+    return map;
+  }
+
+  const knownIds = new Set(Object.values(map));
+  for (const id of ids) {
+    if (knownIds.has(id)) continue;
+    try {
+      const html = await fs.readFile(path.join(TAG_DIR, id, 'index.html'), 'utf-8');
+      const nameMatch = html.match(/<h2 class="current-tag">标签:\s*([^<]+)<\/h2>/);
+      const name = nameMatch?.[1]?.trim();
+      if (name && !map[name]) {
+        map[name] = id;
+        knownIds.add(id);
+      }
+    } catch {
+      // skip unreadable tag pages
+    }
+  }
+
+  return map;
+}
+
+export async function readTagMap(): Promise<Record<string, string>> {
+  const local = await readLocalTagMap();
+  const site = await readSiteTagMap();
+  // Site pages are the source of truth for published tags (Gridea IDs).
+  const merged = mergeTagMaps(local, site);
+  if (!tagMapsEqual(local, merged)) {
+    await writeTagMap(merged);
+  }
+  return merged;
 }
 
 async function writeTagMap(map: Record<string, string>): Promise<void> {
@@ -91,6 +206,198 @@ export async function createTag(name: string): Promise<TagInfo> {
   await appendTagToIndex(trimmed, id);
 
   return { name: trimmed, id, postCount: 0 };
+}
+
+function rewriteKeywordsMeta(html: string, from: string, to: string | null): string {
+  return html.replace(
+    /(<meta name="keywords" content=")([^"]*)("\s*\/?>)/i,
+    (_match, open: string, content: string, close: string) => {
+      const next = rewriteNameList(decodeBasicEntities(content), from, to);
+      return `${open}${escapeAttr(next)}${close}`;
+    },
+  );
+}
+
+function rewritePostTagAnchor(html: string, id: string, newName: string): string {
+  return html.replace(
+    new RegExp(
+      `(<a\\s[^>]*href="[^"]*\\/tag\\/${escapeRegex(id)}\\/?"[^>]*>)([\\s\\S]*?)(<\\/a>)`,
+      'gi',
+    ),
+    `$1\n                    ${escapeHtml(newName)}\n                  $3`,
+  );
+}
+
+function removePostTagAnchor(html: string, id: string): string {
+  const withoutLink = html.replace(
+    new RegExp(`\\s*<a\\s[^>]*href="[^"]*\\/tag\\/${escapeRegex(id)}\\/?"[^>]*>[\\s\\S]*?<\\/a>`, 'gi'),
+    '',
+  );
+  return withoutLink.replace(/<div class="tag-container">\s*<\/div>/gi, '');
+}
+
+async function rewriteTagIndexLink(id: string, newName: string): Promise<void> {
+  const html = await fs.readFile(TAGS_INDEX, 'utf-8');
+  const re = new RegExp(
+    `<a\\s[^>]*href="[^"]*\\/tag\\/${escapeRegex(id)}\\/?"[^>]*>\\s*[^<]*\\s*<\\/a>`,
+    'i',
+  );
+  const updated = html.replace(re, renderTagIndexLink(newName, id).trim());
+  if (updated !== html) {
+    await fs.writeFile(TAGS_INDEX, updated, 'utf-8');
+    return;
+  }
+  if (!html.includes(`/tag/${id}/`)) {
+    await appendTagToIndex(newName, id);
+  }
+}
+
+async function removeTagIndexLink(id: string): Promise<void> {
+  try {
+    const html = await fs.readFile(TAGS_INDEX, 'utf-8');
+    const re = new RegExp(
+      `\\n?\\s*<a\\s[^>]*href="[^"]*\\/tag\\/${escapeRegex(id)}\\/?"[^>]*>\\s*[^<]*\\s*<\\/a>`,
+      'i',
+    );
+    const updated = html.replace(re, '');
+    if (updated !== html) {
+      await fs.writeFile(TAGS_INDEX, updated, 'utf-8');
+    }
+  } catch {
+    // tags/index.html may be missing
+  }
+}
+
+async function rewriteTagPageHeading(id: string, newName: string): Promise<void> {
+  const tagPagePath = path.join(TAG_DIR, id, 'index.html');
+  try {
+    const html = await fs.readFile(tagPagePath, 'utf-8');
+    const updated = html
+      .replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml(newName)} | ${SITE_TITLE}</title>`)
+      .replace(
+        /<h2 class="current-tag">标签:\s*[^<]*<\/h2>/,
+        `<h2 class="current-tag">标签: ${escapeHtml(newName)}</h2>`,
+      );
+    await fs.writeFile(tagPagePath, updated, 'utf-8');
+  } catch {
+    const navItems = await readSiteNav();
+    const theme = await getSiteThemePreset();
+    await fs.mkdir(path.join(TAG_DIR, id), { recursive: true });
+    await fs.writeFile(tagPagePath, renderTagPage(newName, id, [], navItems, theme), 'utf-8');
+  }
+}
+
+async function mapPostHtml(update: (html: string) => string): Promise<number> {
+  let changed = 0;
+  let entries: string[];
+  try {
+    entries = await fs.readdir(POST_DIR);
+  } catch {
+    return 0;
+  }
+
+  for (const slug of entries) {
+    const postPath = path.join(POST_DIR, slug, 'index.html');
+    try {
+      const html = await fs.readFile(postPath, 'utf-8');
+      const next = update(html);
+      if (next !== html) {
+        await fs.writeFile(postPath, next, 'utf-8');
+        changed += 1;
+      }
+    } catch {
+      // skip unreadable posts
+    }
+  }
+  return changed;
+}
+
+async function rewriteDraftTagNames(from: string, to: string | null): Promise<void> {
+  let files: string[];
+  try {
+    files = await fs.readdir(DRAFTS_DIR);
+  } catch {
+    return;
+  }
+
+  for (const file of files) {
+    if (!file.endsWith('.md')) continue;
+    const filePath = path.join(DRAFTS_DIR, file);
+    try {
+      const raw = await fs.readFile(filePath, 'utf-8');
+      const next = raw.replace(/^tags:\s*(.*)$/m, (_match, list: string) => {
+        return `tags: ${rewriteNameList(list, from, to)}`;
+      });
+      if (next !== raw) {
+        await fs.writeFile(filePath, next, 'utf-8');
+      }
+    } catch {
+      // skip unreadable drafts
+    }
+  }
+}
+
+export async function renameTag(
+  id: string,
+  name: string,
+): Promise<{ tag: TagInfo; previousName: string; updatedPosts: number }> {
+  const safeId = assertSafeTagId(id);
+  const newName = name.trim();
+  if (!newName) throw new Error('标签名不能为空');
+
+  const map = await readTagMap();
+  const previousName = findNameById(map, safeId);
+  if (!previousName) throw new Error('标签不存在');
+  if (previousName === newName) {
+    return {
+      tag: { name: newName, id: safeId, postCount: await countPostsForTag(safeId) },
+      previousName,
+      updatedPosts: 0,
+    };
+  }
+
+  const conflictId = map[newName];
+  if (conflictId && conflictId !== safeId) {
+    throw new Error(`标签「${newName}」已存在`);
+  }
+
+  await rewriteTagIndexLink(safeId, newName);
+  await rewriteTagPageHeading(safeId, newName);
+  const updatedPosts = await mapPostHtml((html) =>
+    rewriteKeywordsMeta(rewritePostTagAnchor(html, safeId, newName), previousName, newName),
+  );
+  await rewriteDraftTagNames(previousName, newName);
+
+  delete map[previousName];
+  map[newName] = safeId;
+  await writeTagMap(map);
+
+  return {
+    tag: { name: newName, id: safeId, postCount: await countPostsForTag(safeId) },
+    previousName,
+    updatedPosts,
+  };
+}
+
+export async function deleteTag(
+  id: string,
+): Promise<{ deleted: { name: string; id: string }; updatedPosts: number }> {
+  const safeId = assertSafeTagId(id);
+  const map = await readTagMap();
+  const name = findNameById(map, safeId);
+  if (!name) throw new Error('标签不存在');
+
+  await removeTagIndexLink(safeId);
+  await fs.rm(path.join(TAG_DIR, safeId), { recursive: true, force: true });
+  const updatedPosts = await mapPostHtml((html) =>
+    rewriteKeywordsMeta(removePostTagAnchor(html, safeId), name, null),
+  );
+  await rewriteDraftTagNames(name, null);
+
+  delete map[name];
+  await writeTagMap(map);
+
+  return { deleted: { name, id: safeId }, updatedPosts };
 }
 
 async function appendTagToIndex(name: string, id: string): Promise<void> {

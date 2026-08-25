@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SiteThemePreset } from '../lib/api';
 
 interface ThemePanelProps {
   themes: SiteThemePreset[];
   activeId: string;
   applying: boolean;
-  onSelect: (id: string) => void;
+  onApply: (id: string) => void;
   onImport: (name: string, css: string) => Promise<void>;
 }
 
@@ -13,14 +13,20 @@ export default function ThemePanel({
   themes,
   activeId,
   applying,
-  onSelect,
+  onApply,
   onImport,
 }: ThemePanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingId, setPendingId] = useState(activeId);
   const [importName, setImportName] = useState('');
   const [importCss, setImportCss] = useState('');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
+  const canApply = pendingId !== activeId && !applying;
+
+  useEffect(() => {
+    setPendingId(activeId);
+  }, [activeId]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -52,7 +58,19 @@ export default function ThemePanel({
       <header className="panel-header">
         <div>
           <h1>Theme</h1>
-          <p className="panel-subtitle">切换博客网站的视觉主题，会更新站点内所有 HTML 页面</p>
+          <p className="panel-subtitle">
+            这是博客站点主题，不会改变左侧编辑器外观。先选择主题，再点确认应用；推送到 GitHub 后网站才会变。
+          </p>
+        </div>
+        <div className="panel-header-actions">
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={!canApply}
+            onClick={() => onApply(pendingId)}
+          >
+            {applying ? '应用中…' : '确认应用'}
+          </button>
         </div>
       </header>
 
@@ -61,9 +79,9 @@ export default function ThemePanel({
           <button
             key={theme.id}
             type="button"
-            className={`theme-card${activeId === theme.id ? ' active' : ''}`}
+            className={`theme-card${pendingId === theme.id ? ' selected' : ''}${activeId === theme.id ? ' current' : ''}`}
             disabled={applying}
-            onClick={() => onSelect(theme.id)}
+            onClick={() => setPendingId(theme.id)}
           >
             <div className="theme-preview">
               <div className="theme-preview-sidebar" style={{ background: theme.preview.sidebar }} />
@@ -74,6 +92,7 @@ export default function ThemePanel({
             <div className="theme-card-body">
               <strong>
                 {theme.name}
+                {activeId === theme.id && <span className="theme-badge current">使用中</span>}
                 {theme.id === 'lr4xt-classic' && <span className="theme-badge">Default</span>}
                 {theme.imported && <span className="theme-badge">Imported</span>}
               </strong>

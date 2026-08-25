@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  ensureDefaultSiteRepo,
+  getDefaultSiteRepoPath,
+  isSiteRepo,
+} from './default-site.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,14 +37,6 @@ function resolveUserDataRoot(): string {
 
 export const USER_DATA_ROOT = resolveUserDataRoot();
 
-function isSiteRepo(dir: string): boolean {
-  return (
-    fs.existsSync(path.join(dir, 'index.html')) &&
-    fs.existsSync(path.join(dir, 'post')) &&
-    fs.existsSync(path.join(dir, 'atom.xml'))
-  );
-}
-
 function readConfiguredRepoPath(): string | null {
   const siteFile = path.join(USER_DATA_ROOT, '.credentials', 'site.json');
   try {
@@ -57,7 +54,7 @@ function repoCandidates(): string[] {
   const home = process.env.HOME ?? '';
   return [
     path.join(EDITOR_ROOT, '..'),
-    path.join(home, 'Documents', 'blog-site'),
+    getDefaultSiteRepoPath(home),
     path.join(home, 'Sites', 'blog'),
   ];
 }
@@ -80,9 +77,10 @@ function resolveRepoRoot(): string {
     }
   }
 
-  throw new Error(
-    '找不到博客静态站点目录。请在 Setting 中设置 Site repository path，或设置 SITE_REPO 环境变量。',
-  );
+  // Electron / local fallback: create ~/Documents/blog-site so the UI can open.
+  const fallback = getDefaultSiteRepoPath();
+  ensureDefaultSiteRepo(fallback);
+  return path.resolve(fallback);
 }
 
 function detectSiteMeta(repoRoot: string): {

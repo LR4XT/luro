@@ -122,6 +122,23 @@ export function createTag(name: string): Promise<{ tag: TagInfo }> {
   });
 }
 
+export function renameTag(
+  id: string,
+  name: string,
+): Promise<{ tag: TagInfo; previousName: string; updatedPosts: number }> {
+  return request(`/api/tags/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function deleteTag(id: string): Promise<{ deleted: { name: string; id: string }; updatedPosts: number }> {
+  return request(`/api/tags/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
 export function fetchPages(): Promise<{ items: SiteNavItem[] }> {
   return request('/api/pages');
 }
@@ -191,9 +208,14 @@ export function testRemoteConnection(): Promise<{ ok: boolean; message: string }
 
 export interface SiteConfig {
   repoPath: string;
+  autoCreated?: boolean;
 }
 
-export function fetchSiteConfig(): Promise<{ config: SiteConfig | null; repoRoot: string }> {
+export function fetchSiteConfig(): Promise<{
+  config: SiteConfig | null;
+  repoRoot: string;
+  setupNeeded?: boolean;
+}> {
   return request('/api/site-config');
 }
 

@@ -1,0 +1,32 @@
+/* Paper — warm overlay on styles/main.css */
+body {
+  background: #faf6f0;
+  color: #4a3f35;
+}
+a {
+  color: #4a3f35;
+}
+.sidebar {
+  background-color: #8b7355;
+  background-image: linear-gradient(rgba(139, 115, 85, 0.82), rgba(92, 74, 55, 0.88)),
+    url('../media/images/sidebar-bg.jpg');
+}
+.sidebar .top-container .site-title,
+.sidebar .top-container .site-nav,
+.sidebar .bottom-container {
+  color: #faf6f0;
+}
+.sidebar .top-container .site-nav:hover {
+  color: #ffffff;
+}
+.post-item .left .post-title:hover,
+.post-detail .post-content a {
+  color: #b5651d;
+}
+.post-detail .post-content a {
+  border-bottom-color: #b5651d;
+}
+.post-detail .post-content blockquote {
+  background: #f3e6d3;
+  border-left-color: #b5651d;
+}

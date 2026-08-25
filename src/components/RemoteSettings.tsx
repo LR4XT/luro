@@ -15,6 +15,7 @@ interface RemoteSettingsProps {
   syncMessage?: string;
   themeName?: string;
   syncing: boolean;
+  setupNeeded?: boolean;
   onSync: () => void;
   onSaved: () => void;
 }
@@ -24,6 +25,7 @@ export default function RemoteSettings({
   syncMessage,
   themeName,
   syncing,
+  setupNeeded = false,
   onSync,
   onSaved,
 }: RemoteSettingsProps) {
@@ -153,6 +155,11 @@ export default function RemoteSettings({
 
       <div className="setting-section">
         <h2>Site repository</h2>
+        {setupNeeded && (
+          <p className="setting-banner">
+            已为你在「文稿/blog-site」创建默认本地站点。若你已有 GitHub Pages 仓库，请在下方选择实际目录后保存。
+          </p>
+        )}
         <p className="setting-hint">
           本地博客静态站点目录（GitHub Pages 仓库克隆）。修改后需重启应用生效。
         </p>
@@ -213,7 +220,11 @@ export default function RemoteSettings({
           <input
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
-            placeholder="https://github.com/username/your-blog-site.git"
+            placeholder={
+              authType === 'ssh'
+                ? 'git@github.com:username/your-blog-site.git'
+                : 'https://github.com/username/your-blog-site.git'
+            }
           />
         </label>
 

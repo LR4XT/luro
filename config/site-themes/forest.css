@@ -1,0 +1,32 @@
+/* Forest — green overlay on styles/main.css */
+body {
+  background: #f4f7f4;
+  color: #2f3e34;
+}
+a {
+  color: #2f3e34;
+}
+.sidebar {
+  background-color: #2d6a4f;
+  background-image: linear-gradient(rgba(45, 106, 79, 0.82), rgba(27, 67, 50, 0.88)),
+    url('../media/images/sidebar-bg.jpg');
+}
+.sidebar .top-container .site-title,
+.sidebar .top-container .site-nav,
+.sidebar .bottom-container {
+  color: #e8f5e9;
+}
+.sidebar .top-container .site-nav:hover {
+  color: #ffffff;
+}
+.post-item .left .post-title:hover,
+.post-detail .post-content a {
+  color: #2d6a4f;
+}
+.post-detail .post-content a {
+  border-bottom-color: #2d6a4f;
+}
+.post-detail .post-content blockquote {
+  background: #e8f5e9;
+  border-left-color: #2d6a4f;
+}

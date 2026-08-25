@@ -6,6 +6,8 @@ const SITE_FILE = path.join(USER_DATA_ROOT, '.credentials', 'site.json');
 
 export interface SiteConfig {
   repoPath: string;
+  /** True when the app auto-created ~/Documents/blog-site on first launch. */
+  autoCreated?: boolean;
 }
 
 export async function readSiteConfig(): Promise<SiteConfig | null> {

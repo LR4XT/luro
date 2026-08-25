@@ -137,7 +137,7 @@ export async function saveRemoteConfig(input: RemoteConfigInput): Promise<Remote
     await fs.rm(SSH_KEY_FILE, { force: true });
   } else {
     if (input.sshPrivateKey !== undefined && input.sshPrivateKey.trim() !== '') {
-      secrets.sshPrivateKey = input.sshPrivateKey.trim();
+      secrets.sshPrivateKey = normalizeSshPrivateKey(input.sshPrivateKey);
     }
     if (!secrets.sshPrivateKey) {
       throw new Error('SSH 模式需要粘贴 Private Key');
@@ -165,6 +165,30 @@ function normalizeRepoUrl(url: string): string {
     normalized += '.git';
   }
   return normalized;
+}
+
+function normalizeSshPrivateKey(key: string): string {
+  const trimmed = key.trim();
+  if (/^(ssh-rsa|ssh-ed25519|ssh-dss|ecdsa-sha2-nistp)\s/.test(trimmed)) {
+    throw new Error('这是公钥（.pub）。请粘贴私钥全文，以 -----BEGIN OPENSSH PRIVATE KEY----- 开头');
+  }
+  if (!/BEGIN [A-Z0-9 ]*PRIVATE KEY/.test(trimmed)) {
+    throw new Error('Private Key 格式无效。请粘贴 id_ed25519 / id_rsa 私钥全文，而不是 .pub 文件');
+  }
+  return trimmed;
+}
+
+function toSshGithubUrl(url: string): string | null {
+  if (url.startsWith('git@') || url.startsWith('ssh://')) {
+    return url;
+  }
+  const match = url.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?$/i);
+  if (!match) return null;
+  return `git@github.com:${match[1]}/${match[2]}.git`;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 export function maskRemoteUrl(url: string): string {
@@ -197,12 +221,7 @@ export async function buildOriginUrl(): Promise<string | null> {
     return meta.repoUrl;
   }
 
-  const match = meta.repoUrl.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
-  if (match) {
-    return `git@github.com:${match[1]}/${match[2]}.git`;
-  }
-
-  return meta.repoUrl;
+  return toSshGithubUrl(meta.repoUrl) ?? meta.repoUrl;
 }
 
 export async function getGitEnv(): Promise<NodeJS.ProcessEnv> {
@@ -219,7 +238,7 @@ export async function getGitEnv(): Promise<NodeJS.ProcessEnv> {
 
   env.GIT_SSH_COMMAND = [
     'ssh',
-    `-i ${SSH_KEY_FILE}`,
+    `-i ${shellQuote(SSH_KEY_FILE)}`,
     '-o IdentitiesOnly=yes',
     '-o ConnectTimeout=10',
     '-o StrictHostKeyChecking=accept-new',

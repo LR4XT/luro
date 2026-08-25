@@ -1,9 +1,11 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { EDITOR_ROOT, REPO_ROOT, SITE_URL } from '../config.js';
+import { EDITOR_ROOT, getRepoRoot, SITE_URL } from '../config.js';
 import { readThemes, type SiteThemePreset, type ThemeConfig } from './index.js';
 
-const SITE_THEME_FILE = path.join(REPO_ROOT, 'config', 'site-theme.json');
+function siteThemeStateFile(): string {
+  return path.join(getRepoRoot(), 'config', 'site-theme.json');
+}
 
 export interface SiteThemeState {
   themeId: string;
@@ -60,7 +62,7 @@ function applyThemeLinksToHtml(html: string, preset: SiteThemePreset): string {
 
 export async function readSiteThemeState(): Promise<SiteThemeState> {
   try {
-    const raw = await fs.readFile(SITE_THEME_FILE, 'utf-8');
+    const raw = await fs.readFile(siteThemeStateFile(), 'utf-8');
     const state = JSON.parse(raw) as SiteThemeState;
     if (state.themeId) {
       return state;
@@ -74,9 +76,10 @@ export async function readSiteThemeState(): Promise<SiteThemeState> {
 }
 
 async function writeSiteThemeState(themeId: string): Promise<void> {
-  await fs.mkdir(path.dirname(SITE_THEME_FILE), { recursive: true });
+  const file = siteThemeStateFile();
+  await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(
-    SITE_THEME_FILE,
+    file,
     `${JSON.stringify({ themeId }, null, 2)}\n`,
     'utf-8',
   );
@@ -92,6 +95,33 @@ export async function getSiteThemePreset(themeId?: string): Promise<SiteThemePre
   );
 }
 
+async function syncThemeOverlayFile(preset: SiteThemePreset): Promise<void> {
+  if (!preset.themeOverlay) return;
+
+  const repoRoot = getRepoRoot();
+  const dest = path.join(repoRoot, preset.themeOverlay);
+  await fs.mkdir(path.dirname(dest), { recursive: true });
+
+  const alreadyInRepo = path.resolve(dest);
+  try {
+    await fs.access(alreadyInRepo);
+    if (preset.imported) return;
+  } catch {
+    if (preset.imported) {
+      throw new Error(`自定义主题文件不存在: ${preset.themeOverlay}`);
+    }
+  }
+
+  const source = path.join(EDITOR_ROOT, 'config', 'site-themes', path.basename(preset.themeOverlay));
+  try {
+    await fs.copyFile(source, dest);
+  } catch {
+    if (!(preset.imported)) {
+      throw new Error(`主题样式文件缺失: ${path.basename(preset.themeOverlay)}`);
+    }
+  }
+}
+
 export async function applySiteThemeToRepo(themeId: string): Promise<{ updatedFiles: number; theme: SiteThemePreset }> {
   const config = await readThemes();
   const preset = config.site.presets.find((theme) => theme.id === themeId);
@@ -99,7 +129,9 @@ export async function applySiteThemeToRepo(themeId: string): Promise<{ updatedFi
     throw new Error(`未找到网站主题: ${themeId}`);
   }
 
-  const htmlFiles = await collectHtmlFiles(REPO_ROOT);
+  await syncThemeOverlayFile(preset);
+
+  const htmlFiles = await collectHtmlFiles(getRepoRoot());
   let updated = 0;
 
   for (const filePath of htmlFiles) {
@@ -145,7 +177,7 @@ export async function importSiteTheme(name: string, css: string): Promise<{ them
   }
 
   const overlayPath = `styles/themes/${id}.css`;
-  const overlayFile = path.join(REPO_ROOT, overlayPath);
+  const overlayFile = path.join(getRepoRoot(), overlayPath);
   await fs.mkdir(path.dirname(overlayFile), { recursive: true });
   await fs.writeFile(overlayFile, `${trimmedCss}\n`, 'utf-8');
 

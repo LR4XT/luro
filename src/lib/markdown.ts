@@ -6,6 +6,30 @@ const md = new MarkdownIt({
   breaks: true,
 });
 
+const defaultImageRender =
+  md.renderer.rules.image ??
+  ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
+
+md.renderer.rules.image = (tokens, idx, options, env, self) => {
+  const token = tokens[idx];
+  const src = token.attrGet('src') ?? '';
+  const rewritten = rewritePreviewImageSrc(src);
+  if (rewritten !== src) {
+    token.attrSet('src', rewritten);
+  }
+  return defaultImageRender(tokens, idx, options, env, self);
+};
+
+/** Dev preview is served from Vite; site files are only available under /api/assets. */
+export function rewritePreviewImageSrc(src: string): string {
+  if (src.startsWith('/post-images/')) return `/api/assets${src}`;
+  if (src.startsWith('post-images/')) return `/api/assets/${src}`;
+  if (src.startsWith('https://lr4xt.com/')) {
+    return src.replace('https://lr4xt.com/', '/api/assets/');
+  }
+  return src;
+}
+
 export function expandFontSizeSyntax(markdown: string): string {
   return markdown.replace(
     /\{(\d{1,3})\}([\s\S]*?)\{\/\}/g,

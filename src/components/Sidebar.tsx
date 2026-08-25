@@ -1,5 +1,4 @@
 import type { GitStatusInfo } from '../lib/api';
-import type { ConsoleLogEntry } from '../lib/console-log';
 import {
   IconBook,
   IconChevronDown,
@@ -23,7 +22,7 @@ interface SidebarProps {
   onNavigate: (item: NavItem) => void;
   onToggleEditorTheme: () => void;
   gitStatus: GitStatusInfo | null;
-  consoleLogs: ConsoleLogEntry[];
+  siteRepoPath: string;
 }
 
 const NAV_ITEMS: { id: NavItem; label: string; icon: React.ReactNode; disabled?: boolean }[] = [
@@ -34,15 +33,23 @@ const NAV_ITEMS: { id: NavItem; label: string; icon: React.ReactNode; disabled?:
   { id: 'setting', label: 'Setting', icon: <IconSetting /> },
 ];
 
+function shortenPath(fullPath: string): string {
+  if (!fullPath) return '本地站点仓库';
+  const home = fullPath.match(/^\/Users\/[^/]+/);
+  if (home) {
+    return fullPath.replace(home[0], '~');
+  }
+  return fullPath;
+}
+
 export default function Sidebar({
   active,
   editorThemeId,
   onNavigate,
   onToggleEditorTheme,
   gitStatus,
-  consoleLogs,
+  siteRepoPath,
 }: SidebarProps) {
-  const latestLog = consoleLogs[0];
   const isDark = editorThemeId === 'dark';
 
   return (
@@ -61,7 +68,7 @@ export default function Sidebar({
 
       <div className="site-selector">
         <div className="site-avatar">LR</div>
-        <span className="site-name">LR Blog</span>
+        <span className="site-name">Luro</span>
         <IconChevronDown />
       </div>
 
@@ -105,18 +112,11 @@ export default function Sidebar({
           <IconTerminal />
         </span>
         <span className="sidebar-console-entry-body">
-          <span className="sidebar-console-entry-title">Console</span>
-          {latestLog ? (
-            <span className={`sidebar-console-entry-preview preview-${latestLog.level}`}>
-              {latestLog.message}
-            </span>
-          ) : (
-            <span className="sidebar-console-entry-preview preview-empty">暂无日志</span>
-          )}
+          <span className="sidebar-console-entry-title">Terminal</span>
+          <span className="sidebar-console-entry-preview preview-empty">
+            {shortenPath(siteRepoPath)}
+          </span>
         </span>
-        {consoleLogs.length > 0 && (
-          <span className="sidebar-console-badge">{consoleLogs.length}</span>
-        )}
       </button>
 
       {gitStatus && active === 'setting' && (

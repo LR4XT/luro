@@ -1,0 +1,32 @@
+/* Ocean — blue overlay on styles/main.css */
+body {
+  background: #f0f4f8;
+  color: #33415c;
+}
+a {
+  color: #33415c;
+}
+.sidebar {
+  background-color: #3d5a80;
+  background-image: linear-gradient(rgba(61, 90, 128, 0.82), rgba(27, 54, 93, 0.88)),
+    url('../media/images/sidebar-bg.jpg');
+}
+.sidebar .top-container .site-title,
+.sidebar .top-container .site-nav,
+.sidebar .bottom-container {
+  color: #e7f0f8;
+}
+.sidebar .top-container .site-nav:hover {
+  color: #ffffff;
+}
+.post-item .left .post-title:hover,
+.post-detail .post-content a {
+  color: #0077b6;
+}
+.post-detail .post-content a {
+  border-bottom-color: #0077b6;
+}
+.post-detail .post-content blockquote {
+  background: #dbe7f3;
+  border-left-color: #0077b6;
+}

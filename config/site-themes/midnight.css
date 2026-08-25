@@ -1,0 +1,73 @@
+/* Midnight — dark overlay on styles/main.css */
+body {
+  background: #141820;
+  color: #c5cdd8;
+}
+a {
+  color: #c5cdd8;
+}
+.sidebar {
+  background-color: #0d1017;
+  background-image: linear-gradient(rgba(13, 16, 23, 0.78), rgba(13, 16, 23, 0.88)),
+    url('../media/images/sidebar-bg.jpg');
+}
+.sidebar .top-container .site-title,
+.sidebar .top-container .site-nav,
+.sidebar .bottom-container {
+  color: #d8dee8;
+}
+.sidebar .top-container .site-nav:hover {
+  color: #ffffff;
+}
+.post-item {
+  border-bottom-color: #2a3140;
+}
+.post-item .left .post-title:hover,
+.post-detail .post-title {
+  color: #f1f3f5;
+}
+.post-item .left .post-date,
+.post-item .left .post-abstract,
+.post-detail .post-date {
+  color: #8b95a7;
+}
+.pagination-container .prev,
+.pagination-container .next {
+  background: #1c2230;
+  border-color: #2a3140;
+  color: #c5cdd8;
+}
+.post-detail .post-content h1,
+.post-detail .post-content h2,
+.post-detail .post-content h3,
+.post-detail .post-content h4,
+.post-detail .post-content h5,
+.post-detail .post-content h6 {
+  color: #e8eaef;
+}
+.post-detail .post-content p,
+.post-detail .post-content li {
+  color: #c5cdd8;
+}
+.post-detail .post-content a {
+  color: #748ffc;
+  border-bottom-color: #748ffc;
+}
+.post-detail .post-content blockquote {
+  background: #1c2230;
+  border-left-color: #748ffc;
+}
+.post-detail .post-content p code,
+.post-detail .post-content ul code,
+.post-detail .post-content ol code {
+  background: #1c2230;
+  border-color: #2a3140;
+  color: #adb5bd;
+}
+@media (max-width: 800px) {
+  .sidebar .top-header-container .menu-btn .line,
+  .sidebar .top-header-container .menu-btn:before,
+  .sidebar .top-header-container .menu-btn:after {
+    background: #c5cdd8;
+  }
+}

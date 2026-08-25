@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { TagInfo } from '../lib/api';
+import MarkdownEditor, { type MarkdownEditorHandle } from './MarkdownEditor';
 import Toolbar from './Toolbar';
 import TagPicker from './TagPicker';
 import { IconBack } from './Icons';
@@ -32,8 +33,7 @@ interface PostEditorProps {
   onBack: () => void;
   onSave: () => void;
   onPickCover: (file: File) => Promise<void>;
-  onUploadImage: (file: File) => Promise<void>;
-  onDrop: (e: React.DragEvent) => void;
+  onUploadImage: (file: File) => Promise<string | void>;
 }
 
 export default function PostEditor({
@@ -62,9 +62,8 @@ export default function PostEditor({
   onSave,
   onPickCover,
   onUploadImage,
-  onDrop,
 }: PostEditorProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<MarkdownEditorHandle>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [coverBusy, setCoverBusy] = useState(false);
   const previewHtml = useMemo(() => {
@@ -88,6 +87,11 @@ export default function PostEditor({
         coverInputRef.current.value = '';
       }
     }
+  };
+
+  const insertUploadedImage = async (file: File) => {
+    const snippet = await onUploadImage(file);
+    if (snippet) editorRef.current?.insertText(`\n${snippet}\n`);
   };
 
   if (loading) {
@@ -161,7 +165,7 @@ export default function PostEditor({
                 <input
                   value={slug}
                   onChange={(e) => onSlugChange(e.target.value)}
-                  placeholder="auto"
+                  placeholder="留空则按标题自动生成"
                   readOnly={!isNew}
                 />
               </label>
@@ -215,22 +219,14 @@ export default function PostEditor({
               onCreateTag={onCreateTag}
             />
 
-            <Toolbar
+            <Toolbar editorRef={editorRef} onUploadImage={insertUploadedImage} />
+
+            <MarkdownEditor
+              ref={editorRef}
               value={markdown}
               onChange={onMarkdownChange}
-              textareaRef={textareaRef}
-              onUploadImage={onUploadImage}
-            />
-
-            <textarea
-              ref={textareaRef}
-              className="editor-textarea"
-              value={markdown}
-              onChange={(e) => onMarkdownChange(e.target.value)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={onDrop}
-              spellCheck={false}
-              placeholder="Write in Markdown…"
+              onUploadImage={insertUploadedImage}
+              placeholderText="Write in Markdown…"
             />
 
             {markdownSource === 'converted' && (

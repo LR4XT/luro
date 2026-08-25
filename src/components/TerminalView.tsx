@@ -1,33 +1,144 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { formatLogTime, type ConsoleLogEntry } from '../lib/console-log';
+import { FitAddon } from '@xterm/addon-fit';
+import { Terminal } from '@xterm/xterm';
+import { useEffect, useRef, useState } from 'react';
+import '@xterm/xterm/css/xterm.css';
 
-interface TerminalViewProps {
-  logs: ConsoleLogEntry[];
-  onClear: () => void;
-}
-
-function levelPrefix(level: ConsoleLogEntry['level']): string {
-  switch (level) {
-    case 'success':
-      return 'OK';
-    case 'warn':
-      return 'WARN';
-    case 'error':
-      return 'ERR';
-    default:
-      return 'INFO';
-  }
-}
-
-export default function TerminalView({ logs, onClear }: TerminalViewProps) {
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const chronological = useMemo(() => [...logs].reverse(), [logs]);
+export default function TerminalView() {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [cwd, setCwd] = useState('');
+  const [shell, setShell] = useState('zsh');
+  const [error, setError] = useState('');
+  const [restartKey, setRestartKey] = useState(0);
 
   useEffect(() => {
-    const body = bodyRef.current;
-    if (!body) return;
-    body.scrollTop = body.scrollHeight;
-  }, [logs.length]);
+    const bridge = window.electron?.terminal;
+    const host = hostRef.current;
+
+    if (!bridge) {
+      setError(
+        window.electron
+          ? '终端桥接未加载，请重启桌面应用。'
+          : '请从「应用程序」打开 luro 桌面版；浏览器或 localhost 网页无法使用内置终端。',
+      );
+      return;
+    }
+    if (!host) return;
+
+    let disposed = false;
+    let term: Terminal | null = null;
+    let fitAddon: FitAddon | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+    let unsubData: (() => void) | null = null;
+    let unsubExit: (() => void) | null = null;
+    let sessionId: string | null = null;
+    let onWindowResize: (() => void) | null = null;
+
+    const boot = async () => {
+      try {
+        const knownCwd = await bridge.getCwd();
+        if (disposed) return;
+        setCwd(knownCwd);
+        setError('');
+
+        term = new Terminal({
+          cursorBlink: true,
+          fontSize: 13,
+          fontFamily:
+            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+          theme: {
+            background: '#0d1117',
+            foreground: '#c9d1d9',
+            cursor: '#c9d1d9',
+            selectionBackground: '#264f78',
+            black: '#484f58',
+            red: '#ff7b72',
+            green: '#3fb950',
+            yellow: '#d29922',
+            blue: '#58a6ff',
+            magenta: '#bc8cff',
+            cyan: '#39c5cf',
+            white: '#b1bac4',
+            brightBlack: '#6e7681',
+            brightRed: '#ffa198',
+            brightGreen: '#56d364',
+            brightYellow: '#e3b341',
+            brightBlue: '#79c0ff',
+            brightMagenta: '#d2a8ff',
+            brightCyan: '#56d4dd',
+            brightWhite: '#f0f6fc',
+          },
+          allowProposedApi: true,
+        });
+
+        fitAddon = new FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(host);
+        fitAddon.fit();
+
+        const dims = fitAddon.proposeDimensions();
+        const created = await bridge.create(dims?.cols ?? 80, dims?.rows ?? 24);
+        if (disposed) {
+          await bridge.kill(created.id);
+          return;
+        }
+
+        sessionId = created.id;
+        setCwd(created.cwd);
+        setShell(created.shell);
+
+        unsubData = bridge.onData((payload) => {
+          if (payload.id === sessionId) {
+            term?.write(payload.data);
+          }
+        });
+
+        unsubExit = bridge.onExit((payload) => {
+          if (payload.id !== sessionId) return;
+          term?.writeln('');
+          term?.writeln(`[process exited with code ${payload.exitCode}]`);
+          sessionId = null;
+        });
+
+        term.onData((data) => {
+          if (sessionId) {
+            void bridge.write(sessionId, data);
+          }
+        });
+
+        const syncSize = () => {
+          if (!fitAddon || !term || !sessionId) return;
+          fitAddon.fit();
+          void bridge.resize(sessionId, term.cols, term.rows);
+        };
+
+        onWindowResize = syncSize;
+        resizeObserver = new ResizeObserver(syncSize);
+        resizeObserver.observe(host);
+        window.addEventListener('resize', syncSize);
+        term.focus();
+      } catch (err) {
+        if (!disposed) {
+          setError((err as Error).message || '无法启动终端');
+        }
+      }
+    };
+
+    void boot();
+
+    return () => {
+      disposed = true;
+      if (onWindowResize) {
+        window.removeEventListener('resize', onWindowResize);
+      }
+      resizeObserver?.disconnect();
+      unsubData?.();
+      unsubExit?.();
+      if (sessionId) {
+        void bridge.kill(sessionId);
+      }
+      term?.dispose();
+    };
+  }, [restartKey]);
 
   return (
     <div className="terminal-panel">
@@ -36,47 +147,29 @@ export default function TerminalView({ logs, onClear }: TerminalViewProps) {
           <span className="terminal-dot terminal-dot-red" />
           <span className="terminal-dot terminal-dot-yellow" />
           <span className="terminal-dot terminal-dot-green" />
-          <span className="terminal-title">luro — zsh</span>
+          <span className="terminal-title">
+            luro — {shell}
+            {cwd ? ` · ${cwd}` : ''}
+          </span>
         </div>
         <button
           type="button"
           className="terminal-clear"
-          onClick={onClear}
-          disabled={logs.length === 0}
+          onClick={() => {
+            setError('');
+            setRestartKey((key) => key + 1);
+          }}
         >
-          Clear
+          Restart
         </button>
       </header>
 
-      <div ref={bodyRef} className="terminal-body">
-        <div className="terminal-line terminal-line-muted">
-          luro · 操作日志终端
-        </div>
-        <div className="terminal-line terminal-line-muted">
-          记录 Sync、Push、Save、Delete 等操作输出
-        </div>
-        <div className="terminal-line terminal-line-spacer" aria-hidden="true" />
-
-        {chronological.length === 0 ? (
-          <div className="terminal-line terminal-line-muted">
-            <span className="terminal-prompt">$</span> 等待操作…
-          </div>
-        ) : (
-          chronological.map((log) => (
-            <div key={log.id} className={`terminal-line terminal-line-${log.level}`}>
-              <span className="terminal-time">[{formatLogTime(log.time)}]</span>
-              <span className="terminal-level">{levelPrefix(log.level)}</span>
-              <span className="terminal-action">{log.action}</span>
-              <span className="terminal-message">{log.message}</span>
-            </div>
-          ))
-        )}
-
-        <div className="terminal-line terminal-line-input">
-          <span className="terminal-prompt">$</span>
-          <span className="terminal-cursor" aria-hidden="true" />
-        </div>
-      </div>
+      {error ? <div className="terminal-fallback">{error}</div> : null}
+      <div
+        ref={hostRef}
+        className="terminal-xterm"
+        style={error ? { display: 'none' } : undefined}
+      />
     </div>
   );
 }

@@ -14,7 +14,7 @@ import {
   SITE_URL,
 } from './config.js';
 import { getPostDetail, listExistingPosts, publishPost, deletePosts } from './publish/index.js';
-import { createTag, listTags } from './tags/index.js';
+import { createTag, deleteTag, listTags, renameTag } from './tags/index.js';
 import { listSiteNav, saveSiteNav } from './pages/index.js';
 import { readThemes } from './themes/index.js';
 import {
@@ -57,7 +57,8 @@ export function createApp(options: { serveStatic?: boolean } = {}): Express {
     }),
     limits: { fileSize: 15 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
-      cb(null, /^image\//.test(file.mimetype));
+      const namedImage = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.originalname);
+      cb(null, /^image\//.test(file.mimetype) || namedImage);
     },
   });
 
@@ -80,7 +81,11 @@ export function createApp(options: { serveStatic?: boolean } = {}): Express {
 
   app.get('/api/site-config', async (_req, res) => {
     const config = await readSiteConfig();
-    res.json({ config, repoRoot: getRepoRoot() });
+    res.json({
+      config,
+      repoRoot: getRepoRoot(),
+      setupNeeded: Boolean(config?.autoCreated) || process.env.LURO_SETUP_NEEDED === '1',
+    });
   });
 
   app.post('/api/site-config', async (req, res) => {
@@ -90,8 +95,9 @@ export function createApp(options: { serveStatic?: boolean } = {}): Express {
         res.status(400).json({ error: '无效的博客仓库路径' });
         return;
       }
-      await writeSiteConfig({ repoPath });
+      await writeSiteConfig({ repoPath, autoCreated: false });
       process.env.SITE_REPO = repoPath;
+      process.env.LURO_SETUP_NEEDED = '0';
       res.json({ ok: true, repoPath, message: '已保存，请重启应用生效' });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
@@ -162,6 +168,31 @@ export function createApp(options: { serveStatic?: boolean } = {}): Express {
       res.json({ tag: await createTag(name) });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  app.patch('/api/tags/:id', async (req, res) => {
+    try {
+      const name = String(req.body.name ?? '').trim();
+      if (!name) {
+        res.status(400).json({ error: '标签名不能为空' });
+        return;
+      }
+      res.json(await renameTag(String(req.params.id), name));
+    } catch (error) {
+      const message = (error as Error).message;
+      const status = message === '标签不存在' ? 404 : 400;
+      res.status(status).json({ error: message });
+    }
+  });
+
+  app.delete('/api/tags/:id', async (req, res) => {
+    try {
+      res.json(await deleteTag(String(req.params.id)));
+    } catch (error) {
+      const message = (error as Error).message;
+      const status = message === '标签不存在' ? 404 : 400;
+      res.status(status).json({ error: message });
     }
   });
 

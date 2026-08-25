@@ -10,16 +10,19 @@ import TagManager from './components/TagManager';
 import ThemePanel from './components/ThemePanel';
 import {
   createTag,
+  deleteTag,
   deletePosts,
   applySiteTheme,
   fetchGitStatus,
   fetchPost,
+  fetchSiteConfig,
   fetchTags,
   fetchThemes,
   generateSlug,
   importSiteTheme,
   publishPost,
   pushRepo,
+  renameTag,
   syncRepo,
   fetchPosts,
   uploadImage,
@@ -29,8 +32,7 @@ import {
   type TagInfo,
   type EditorThemePreset,
 } from './lib/api';
-import { insertAtCursor, todayDateString } from './lib/markdown';
-import { useConsoleLog } from './lib/console-log';
+import { todayDateString } from './lib/markdown';
 import {
   applyEditorTheme,
   getStoredEditorThemeId,
@@ -91,8 +93,14 @@ export default function App() {
   const [tags, setTags] = useState<string[]>([]);
   const [featureImage, setFeatureImage] = useState('');
   const [markdown, setMarkdown] = useState(EMPTY_MARKDOWN);
+  const [setupNeeded, setSetupNeeded] = useState(false);
+  const [siteRepoPath, setSiteRepoPath] = useState('');
 
-  const { logs: consoleLogs, appendLog, clearLogs } = useConsoleLog();
+  // Reserved for future structured op feedback; Terminal is now a real shell.
+  const appendLog = useCallback(
+    (_entry: { level: string; action: string; message: string }) => undefined,
+    [],
+  );
 
   const refreshTags = useCallback(async () => {
     const { tags: nextTags } = await fetchTags();
@@ -206,6 +214,19 @@ export default function App() {
   }, [gitStatus, pendingPostChanges]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const forceSetup = params.get('setup') === '1';
+
+    void fetchSiteConfig()
+      .then(({ setupNeeded: needed, repoRoot, config }) => {
+        setSiteRepoPath(config?.repoPath || repoRoot || '');
+        if (forceSetup || needed) {
+          setSetupNeeded(true);
+          setNav('setting');
+        }
+      })
+      .catch(() => undefined);
+
     void loadThemes();
     void runSync();
   }, [loadThemes, runSync]);
@@ -227,6 +248,24 @@ export default function App() {
     async (name: string) => {
       await createTag(name);
       await refreshTags();
+    },
+    [refreshTags],
+  );
+
+  const handleRenameTag = useCallback(
+    async (id: string, name: string) => {
+      const result = await renameTag(id, name);
+      await refreshTags();
+      setTags((prev) => prev.map((tag) => (tag === result.previousName ? result.tag.name : tag)));
+    },
+    [refreshTags],
+  );
+
+  const handleDeleteTag = useCallback(
+    async (id: string) => {
+      const result = await deleteTag(id);
+      await refreshTags();
+      setTags((prev) => prev.filter((tag) => tag !== result.deleted.name));
     },
     [refreshTags],
   );
@@ -338,51 +377,19 @@ export default function App() {
     }
   };
 
-  const insertImageMarkdown = useCallback(
-    (snippet: string, textarea: HTMLTextAreaElement | null) => {
-      if (!textarea) {
-        setMarkdown((prev) => `${prev}\n${snippet}\n`);
-        return;
-      }
-      const { selectionStart, selectionEnd } = textarea;
-      setMarkdown((prev) => {
-        const { nextValue } = insertAtCursor(prev, selectionStart, selectionEnd, `\n${snippet}\n`);
-        return nextValue;
-      });
-    },
-    [],
-  );
-
   const handleUploadImage = async (file: File) => {
     setError('');
     const result = await uploadImage(file);
-    const textarea = document.querySelector('.editor-textarea') as HTMLTextAreaElement | null;
-    insertImageMarkdown(result.markdown, textarea);
     if (!featureImage) {
       setFeatureImage(result.filename);
     }
+    return result.markdown;
   };
 
   const handlePickCover = async (file: File) => {
     setError('');
     const result = await uploadImage(file);
     setFeatureImage(result.filename);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'));
-    if (!file) return;
-    setBusy(true);
-    try {
-      await handleUploadImage(file);
-    } catch (err) {
-      const msg = (err as Error).message;
-      setError(msg);
-      appendLog({ level: 'error', action: 'Upload', message: msg });
-    } finally {
-      setBusy(false);
-    }
   };
 
   const handleDeletePosts = async (slugs: string[]) => {
@@ -469,14 +476,19 @@ export default function App() {
         onNavigate={handleNavigate}
         onToggleEditorTheme={handleToggleEditorTheme}
         gitStatus={gitStatus}
-        consoleLogs={consoleLogs}
+        siteRepoPath={siteRepoPath}
       />
 
       <main className={`content${nav === 'console' ? ' content-terminal' : ''}`}>
         {nav === 'console' ? (
-          <TerminalView logs={consoleLogs} onClear={clearLogs} />
+          <TerminalView />
         ) : nav === 'tag' ? (
-          <TagManager tags={allTags} onCreateTag={handleCreateTag} />
+          <TagManager
+            tags={allTags}
+            onCreateTag={handleCreateTag}
+            onRenameTag={handleRenameTag}
+            onDeleteTag={handleDeleteTag}
+          />
         ) : nav === 'page' ? (
           <PageManager />
         ) : nav === 'theme' ? (
@@ -484,7 +496,7 @@ export default function App() {
             themes={siteThemes}
             activeId={activeSiteThemeId}
             applying={applyingSiteTheme}
-            onSelect={(id) => void handleSelectSiteTheme(id)}
+            onApply={(id) => void handleSelectSiteTheme(id)}
             onImport={handleImportSiteTheme}
           />
         ) : nav === 'setting' ? (
@@ -493,6 +505,7 @@ export default function App() {
             syncMessage={syncMessage}
             themeName={siteThemes.find((theme) => theme.id === activeSiteThemeId)?.name}
             syncing={syncing}
+            setupNeeded={setupNeeded}
             onSync={runSync}
             onSaved={refreshGitStatus}
           />
@@ -553,7 +566,7 @@ export default function App() {
             onUploadImage={async (file) => {
               setBusy(true);
               try {
-                await handleUploadImage(file);
+                return await handleUploadImage(file);
               } catch (err) {
                 const msg = (err as Error).message;
                 setError(msg);
@@ -562,7 +575,6 @@ export default function App() {
                 setBusy(false);
               }
             }}
-            onDrop={handleDrop}
           />
         )}
       </main>
