@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import fsPromises from 'node:fs/promises';
+import type { Server } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import cors from 'cors';
@@ -27,6 +28,7 @@ import {
   saveAndApplyRemoteConfig,
   testRemoteConnection,
 } from './remote/index.js';
+import { getDefaultSiteRepoPath } from './default-site.js';
 import { readSiteConfig, writeSiteConfig } from './site-config.js';
 import { getGitStatus, pullLatest, pushLocalChanges } from './utils/git.js';
 import { titleToSlug } from './utils/text.js';
@@ -84,6 +86,7 @@ export function createApp(options: { serveStatic?: boolean } = {}): Express {
     res.json({
       config,
       repoRoot: getRepoRoot(),
+      defaultPath: getDefaultSiteRepoPath(),
       setupNeeded: Boolean(config?.autoCreated) || process.env.LURO_SETUP_NEEDED === '1',
     });
   });
@@ -366,13 +369,20 @@ export function createApp(options: { serveStatic?: boolean } = {}): Express {
 }
 
 export async function startServer(options: { port?: number; serveStatic?: boolean } = {}) {
-  const port = options.port ?? 3456;
+  const requestedPort = options.port ?? 3456;
   const app = createApp({ serveStatic: options.serveStatic });
 
-  await new Promise<void>((resolve) => {
-    app.listen(port, '127.0.0.1', () => resolve());
+  // Surface EADDRINUSE instead of hanging forever on a port someone else owns.
+  const server = await new Promise<Server>((resolve, reject) => {
+    const listener = app.listen(requestedPort, '127.0.0.1', () => {
+      listener.off('error', reject);
+      resolve(listener);
+    });
+    listener.once('error', reject);
   });
 
+  const address = server.address();
+  const port = typeof address === 'object' && address !== null ? address.port : requestedPort;
   const url = `http://127.0.0.1:${port}`;
   console.log(`Blog editor running at ${url}`);
   console.log(`Site repo: ${getRepoRoot()}`);

@@ -1,12 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { DRAFTS_DIR, EDITOR_ROOT, POST_DIR, REPO_ROOT, SITE_TITLE } from '../config.js';
+import { DRAFTS_DIR, EDITOR_ROOT, POST_DIR, REPO_ROOT, SITE_TITLE, USER_DATA_ROOT } from '../config.js';
 import { readSiteNav } from '../pages/index.js';
 import { getSiteThemePreset } from '../themes/site.js';
 import { renderTagIndexLink, renderTagPage, renderTagPostItem } from '../templates/tag.js';
 import { escapeAttr, escapeHtml } from '../utils/text.js';
 
-const TAGS_FILE = path.join(EDITOR_ROOT, 'config', 'tags.json');
+const BUNDLED_TAGS_FILE = path.join(EDITOR_ROOT, 'config', 'tags.json');
+const TAGS_FILE = path.join(USER_DATA_ROOT, 'config', 'tags.json');
 const TAGS_INDEX = path.join(REPO_ROOT, 'tags', 'index.html');
 const TAG_DIR = path.join(REPO_ROOT, 'tag');
 
@@ -84,12 +85,15 @@ function rewriteNameList(raw: string, from: string, to: string | null): string {
 }
 
 async function readLocalTagMap(): Promise<Record<string, string>> {
-  try {
-    const raw = await fs.readFile(TAGS_FILE, 'utf-8');
-    return JSON.parse(raw) as Record<string, string>;
-  } catch {
-    return {};
+  for (const file of [TAGS_FILE, BUNDLED_TAGS_FILE]) {
+    try {
+      const raw = await fs.readFile(file, 'utf-8');
+      return JSON.parse(raw) as Record<string, string>;
+    } catch {
+      // try the next location
+    }
   }
+  return {};
 }
 
 async function readSiteTagMap(): Promise<Record<string, string>> {
@@ -140,6 +144,7 @@ export async function readTagMap(): Promise<Record<string, string>> {
 }
 
 async function writeTagMap(map: Record<string, string>): Promise<void> {
+  await fs.mkdir(path.dirname(TAGS_FILE), { recursive: true });
   await fs.writeFile(TAGS_FILE, `${JSON.stringify(map, null, 2)}\n`, 'utf-8');
 }
 

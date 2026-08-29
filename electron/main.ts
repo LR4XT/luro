@@ -167,20 +167,10 @@ function saveSiteConfig(repoPath: string, extra: { autoCreated?: boolean } = {})
   );
 }
 
-function defaultCandidates(): string[] {
-  const home = process.env.HOME ?? '';
-  const editorRoot = getEditorRoot();
-  return [
-    path.join(editorRoot, '..'),
-    getDefaultSiteRepoPath(),
-    path.join(home, 'Sites', 'blog'),
-  ];
-}
-
 /**
  * Resolve a site repo without blocking the UI.
- * Prefer env / saved config / known candidates; otherwise create
- * ~/Documents/blog-site and open the app into Settings.
+ * Prefer env / saved config; otherwise create ~/Documents/blog-site
+ * and open the app into Settings.
  */
 function resolveSiteRepo(): string {
   process.env.ELECTRON_RUN = '1';
@@ -197,15 +187,6 @@ function resolveSiteRepo(): string {
   if (configured) {
     process.env.SITE_REPO = configured;
     return configured;
-  }
-
-  for (const candidate of defaultCandidates()) {
-    if (isSiteRepo(candidate)) {
-      const resolved = path.resolve(candidate);
-      process.env.SITE_REPO = resolved;
-      saveSiteConfig(resolved);
-      return resolved;
-    }
   }
 
   const fallback = getDefaultSiteRepoPath();
@@ -250,14 +231,16 @@ async function bootstrap(): Promise<void> {
   console.log(`Site repo: ${repo}`);
 
   const serverModule = await import('../server/index.js');
-  const { url } = await serverModule.startServer({ serveStatic: true, port: 3456 });
+  // Port 0 picks a free port. A fixed one would let the app attach to whatever
+  // already owns it — e.g. a `npm run dev` server pointing at another site repo.
+  const { url } = await serverModule.startServer({ serveStatic: true, port: 0 });
   serverUrl = url;
 
   ipcMain.handle('pick-folder', async () => {
     const options = {
       title: '选择博客静态站点目录',
       message: '请选择包含 index.html、post/ 和 atom.xml 的仓库目录',
-      defaultPath: path.join(process.env.HOME ?? '', 'Documents'),
+      defaultPath: getDefaultSiteRepoPath(),
       properties: ['openDirectory' as const],
     };
     const result = mainWindow

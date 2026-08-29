@@ -40,7 +40,7 @@ export default function RemoteSettings({
   const [testResult, setTestResult] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
   const [siteRepoPath, setSiteRepoPath] = useState('');
-  const [currentRepoRoot, setCurrentRepoRoot] = useState('');
+  const [defaultSitePath, setDefaultSitePath] = useState('');
   const [siteSaveMessage, setSiteSaveMessage] = useState('');
 
   useEffect(() => {
@@ -48,9 +48,9 @@ export default function RemoteSettings({
       .then(({ config }) => applyConfig(config))
       .catch(() => undefined);
     fetchSiteConfig()
-      .then(({ config, repoRoot }) => {
-        setCurrentRepoRoot(repoRoot);
-        setSiteRepoPath(config?.repoPath ?? repoRoot);
+      .then(({ config, repoRoot, defaultPath }) => {
+        setDefaultSitePath(defaultPath);
+        setSiteRepoPath(config?.repoPath ?? repoRoot ?? defaultPath);
       })
       .catch(() => undefined);
   }, []);
@@ -169,7 +169,7 @@ export default function RemoteSettings({
             <input
               value={siteRepoPath}
               onChange={(e) => setSiteRepoPath(e.target.value)}
-              placeholder={currentRepoRoot || '/path/to/your-blog-site'}
+              placeholder={defaultSitePath || '~/Documents/blog-site'}
             />
             {window.electron?.pickFolder && (
               <button type="button" className="btn-ghost" onClick={() => void handleBrowseSiteRepo()}>

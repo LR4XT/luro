@@ -214,6 +214,7 @@ export interface SiteConfig {
 export function fetchSiteConfig(): Promise<{
   config: SiteConfig | null;
   repoRoot: string;
+  defaultPath: string;
   setupNeeded?: boolean;
 }> {
   return request('/api/site-config');

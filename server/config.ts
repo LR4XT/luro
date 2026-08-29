@@ -50,15 +50,6 @@ function readConfiguredRepoPath(): string | null {
   return null;
 }
 
-function repoCandidates(): string[] {
-  const home = process.env.HOME ?? '';
-  return [
-    path.join(EDITOR_ROOT, '..'),
-    getDefaultSiteRepoPath(home),
-    path.join(home, 'Sites', 'blog'),
-  ];
-}
-
 function resolveRepoRoot(): string {
   if (process.env.SITE_REPO) {
     const configured = path.resolve(process.env.SITE_REPO);
@@ -71,13 +62,7 @@ function resolveRepoRoot(): string {
   const configured = readConfiguredRepoPath();
   if (configured) return configured;
 
-  for (const candidate of repoCandidates()) {
-    if (isSiteRepo(candidate)) {
-      return path.resolve(candidate);
-    }
-  }
-
-  // Electron / local fallback: create ~/Documents/blog-site so the UI can open.
+  // Default: ~/Documents/blog-site (created on first launch if missing).
   const fallback = getDefaultSiteRepoPath();
   ensureDefaultSiteRepo(fallback);
   return path.resolve(fallback);
