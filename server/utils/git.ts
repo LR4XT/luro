@@ -1,5 +1,6 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { getRepoRoot } from '../config.js';
+import { ensureGitRepo } from '../default-site.js';
 import { getGitEnv, isRemoteConfigured } from '../remote/config.js';
 
 const GIT_TIMEOUT_MS = 15_000;
@@ -62,6 +63,7 @@ export interface GitStatusInfo {
 }
 
 export async function getGitStatus(): Promise<GitStatusInfo> {
+  ensureGitRepo(getRepoRoot());
   const git = await ensureGit();
   const status = await git.status();
   const remotes = await git.getRemotes(true);

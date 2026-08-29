@@ -22,7 +22,7 @@ export default function ThemePanel({
   const [importCss, setImportCss] = useState('');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
-  const canApply = pendingId !== activeId && !applying;
+  const canApply = Boolean(pendingId) && !applying;
 
   useEffect(() => {
     setPendingId(activeId);
@@ -59,7 +59,7 @@ export default function ThemePanel({
         <div>
           <h1>Theme</h1>
           <p className="panel-subtitle">
-            这是博客站点主题，不会改变左侧编辑器外观。先选择主题，再点确认应用；推送到 GitHub 后网站才会变。
+            这是博客站点主题，不会改变左侧编辑器外观。先选择主题，再点确认应用；当前主题也可以再点一次以补全样式。推送到 GitHub 后网站才会变。
           </p>
         </div>
         <div className="panel-header-actions">

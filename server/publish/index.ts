@@ -61,13 +61,15 @@ export interface PostDetail extends PostSummary {
 
 const POST_TITLE_RE = /<h2 class="post-title">([^<]+)<\/h2>/;
 const POST_DATE_RE = /<div class="post-date">\s*(\d{4}-\d{2}-\d{2})\s*<\/div>/;
-const POST_LINK_RE = /href="https:\/\/lr4xt\.com\/post\/([^"/]+)\/"/;
+const POST_LINK_RE = /href="[^"]*\/post\/([^"/]+)\/"/;
 const FEATURE_IMAGE_RE = /post-images\/([^'"]+)/;
+const NEXT_POST_RE =
+  /<div class="next-post">[\s\S]*?href="[^"]*\/post\/([^"/]+)\/"[\s\S]*?<h3 class="post-title">\s*([\s\S]*?)\s*<\/h3>/;
 
-export async function listExistingPosts(): Promise<PostSummary[]> {
-  const indexHtml = await fs.readFile(INDEX_FILE, 'utf-8');
+export function parsePostsFromIndex(indexHtml: string): PostSummary[] {
   const articles = indexHtml.split('<article class="post-item">').slice(1);
   const posts: PostSummary[] = [];
+  const seen = new Set<string>();
 
   for (const block of articles) {
     const titleMatch = block.match(POST_TITLE_RE);
@@ -76,9 +78,12 @@ export async function listExistingPosts(): Promise<PostSummary[]> {
     const featureMatch = block.match(FEATURE_IMAGE_RE);
 
     if (titleMatch && dateMatch && linkMatch) {
+      const slug = linkMatch[1];
+      if (seen.has(slug)) continue;
+      seen.add(slug);
       posts.push({
         title: titleMatch[1].trim(),
-        slug: linkMatch[1],
+        slug,
         date: dateMatch[1],
         featureImage: featureMatch?.[1],
       });
@@ -86,6 +91,11 @@ export async function listExistingPosts(): Promise<PostSummary[]> {
   }
 
   return posts;
+}
+
+export async function listExistingPosts(): Promise<PostSummary[]> {
+  const indexHtml = await fs.readFile(INDEX_FILE, 'utf-8');
+  return parsePostsFromIndex(indexHtml);
 }
 
 export async function publishPost(input: PublishInput): Promise<PublishResult> {
@@ -115,9 +125,7 @@ export async function publishPost(input: PublishInput): Promise<PublishResult> {
   let nextPost: { slug: string; title: string } | undefined;
   if (exists) {
     const currentHtml = await fs.readFile(path.join(POST_DIR, slug, 'index.html'), 'utf-8');
-    const nextMatch = currentHtml.match(
-      /<div class="next-post">[\s\S]*?href="https:\/\/lr4xt\.com\/post\/([^"/]+)\/"[\s\S]*?<h3 class="post-title">\s*([\s\S]*?)\s*<\/h3>/,
-    );
+    const nextMatch = currentHtml.match(NEXT_POST_RE);
     nextPost = nextMatch
       ? { slug: nextMatch[1], title: nextMatch[2].replace(/\s+/g, ' ').trim() }
       : undefined;
@@ -227,16 +235,7 @@ async function updateIndex(post: {
   featureImage?: string;
 }): Promise<void> {
   const html = await fs.readFile(INDEX_FILE, 'utf-8');
-  const marker = '<div class="content-container" data-aos="fade-up">';
-  const markerIndex = html.indexOf(marker);
-  if (markerIndex === -1) {
-    throw new Error('无法在 index.html 中找到内容容器');
-  }
-
-  const insertAt = markerIndex + marker.length;
-  const newArticle = renderIndexPostItem(post);
-  const updated = `${html.slice(0, insertAt)}\n          ${newArticle.trim()}\n          ${html.slice(insertAt)}`;
-  await fs.writeFile(INDEX_FILE, updated, 'utf-8');
+  await fs.writeFile(INDEX_FILE, upsertIndexArticle(html, post.slug, renderIndexPostItem(post)), 'utf-8');
 }
 
 async function updateAtom(post: {
@@ -350,6 +349,42 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function replaceAllKeepOne(source: string, pattern: string, replacement: string): {
+  next: string;
+  found: boolean;
+} {
+  const re = new RegExp(pattern, 'gi');
+  if (!re.test(source)) {
+    return { next: source, found: false };
+  }
+  re.lastIndex = 0;
+  let kept = false;
+  const next = source.replace(re, () => {
+    if (kept) return '';
+    kept = true;
+    return replacement;
+  });
+  return { next, found: true };
+}
+
+export function upsertIndexArticle(html: string, slug: string, articleHtml: string): string {
+  const trimmed = articleHtml.trim();
+  const { next, found } = replaceAllKeepOne(
+    html,
+    `<article class="post-item">[\\s\\S]*?/post/${escapeRegex(slug)}/[\\s\\S]*?</article>`,
+    trimmed,
+  );
+  if (found) return next;
+
+  const marker = '<div class="content-container" data-aos="fade-up">';
+  const markerIndex = html.indexOf(marker);
+  if (markerIndex === -1) {
+    throw new Error('无法在 index.html 中找到内容容器');
+  }
+  const insertAt = markerIndex + marker.length;
+  return `${html.slice(0, insertAt)}\n          ${trimmed}\n          ${html.slice(insertAt)}`;
+}
+
 async function saveDraftFromMeta(
   meta: {
     title: string;
@@ -402,7 +437,7 @@ async function resolvePostMarkdown(
 }
 
 async function replaceIndexPost(
-  slug: string,
+  _slug: string,
   post: {
     title: string;
     slug: string;
@@ -411,17 +446,7 @@ async function replaceIndexPost(
     featureImage?: string;
   },
 ): Promise<void> {
-  const html = await fs.readFile(INDEX_FILE, 'utf-8');
-  const articleRe = new RegExp(
-    `<article class="post-item">[\\s\\S]*?/post/${escapeRegex(slug)}/[\\s\\S]*?</article>`,
-    'i',
-  );
-  const newArticle = renderIndexPostItem(post).trim();
-  if (!articleRe.test(html)) {
-    await updateIndex(post);
-    return;
-  }
-  await fs.writeFile(INDEX_FILE, html.replace(articleRe, newArticle), 'utf-8');
+  await updateIndex(post);
 }
 
 async function replaceAtomEntry(
@@ -434,13 +459,14 @@ async function replaceAtomEntry(
   },
 ): Promise<void> {
   let xml = await fs.readFile(ATOM_FILE, 'utf-8');
-  const entryRe = new RegExp(
-    `<entry>[\\s\\S]*?/post/${escapeRegex(slug)}/[\\s\\S]*?</entry>`,
-    'i',
-  );
   const newEntry = renderAtomEntry(post).trim();
-  if (entryRe.test(xml)) {
-    xml = xml.replace(entryRe, newEntry);
+  const replaced = replaceAllKeepOne(
+    xml,
+    `<entry>[\\s\\S]*?/post/${escapeRegex(slug)}/[\\s\\S]*?</entry>`,
+    newEntry,
+  );
+  if (replaced.found) {
+    xml = replaced.next;
   } else {
     const rightsEnd = xml.indexOf('</rights>');
     if (rightsEnd === -1) throw new Error('无法在 atom.xml 中找到插入点');
@@ -456,13 +482,14 @@ async function replaceArchivePost(
   post: { title: string; slug: string; date: string },
 ): Promise<void> {
   const html = await fs.readFile(ARCHIVES_FILE, 'utf-8');
-  const articleRe = new RegExp(
-    `<article class="post">[\\s\\S]*?/post/${escapeRegex(slug)}/[\\s\\S]*?</article>`,
-    'i',
-  );
   const newArticle = renderArchiveItem({ title: post.title, slug: post.slug }).trim();
-  if (articleRe.test(html)) {
-    await fs.writeFile(ARCHIVES_FILE, html.replace(articleRe, newArticle), 'utf-8');
+  const replaced = replaceAllKeepOne(
+    html,
+    `<article class="post">[\\s\\S]*?/post/${escapeRegex(slug)}/[\\s\\S]*?</article>`,
+    newArticle,
+  );
+  if (replaced.found) {
+    await fs.writeFile(ARCHIVES_FILE, replaced.next, 'utf-8');
   }
 }
 
@@ -484,9 +511,7 @@ export async function getPostDetail(slug: string): Promise<PostDetail> {
       tags.push(m[1].trim());
     }
   }
-  const nextMatch = html.match(
-    /<div class="next-post">[\s\S]*?href="https:\/\/lr4xt\.com\/post\/([^"/]+)\/"[\s\S]*?<h3 class="post-title">\s*([\s\S]*?)\s*<\/h3>/,
-  );
+  const nextMatch = html.match(NEXT_POST_RE);
 
   if (!titleMatch || !dateMatch) {
     throw new Error(`无法解析文章: ${slug}`);

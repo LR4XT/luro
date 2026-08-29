@@ -9,7 +9,7 @@ a {
 .sidebar {
   background-color: #3d5a80;
   background-image: linear-gradient(rgba(61, 90, 128, 0.82), rgba(27, 54, 93, 0.88)),
-    url('../media/images/sidebar-bg.jpg');
+    url('../../media/images/sidebar-bg.jpg');
 }
 .sidebar .top-container .site-title,
 .sidebar .top-container .site-nav,

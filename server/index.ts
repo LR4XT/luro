@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import fsPromises from 'node:fs/promises';
 import type { Server } from 'node:http';
 import path from 'node:path';
@@ -28,18 +27,10 @@ import {
   saveAndApplyRemoteConfig,
   testRemoteConnection,
 } from './remote/index.js';
-import { getDefaultSiteRepoPath } from './default-site.js';
+import { getDefaultSiteRepoPath, ensureSiteRepo, OCCUPIED_DIR_ERROR } from './default-site.js';
 import { readSiteConfig, writeSiteConfig } from './site-config.js';
 import { getGitStatus, pullLatest, pushLocalChanges } from './utils/git.js';
 import { titleToSlug } from './utils/text.js';
-
-function isValidRepo(dir: string): boolean {
-  return (
-    fs.existsSync(path.join(dir, 'index.html')) &&
-    fs.existsSync(path.join(dir, 'post')) &&
-    fs.existsSync(path.join(dir, 'atom.xml'))
-  );
-}
 
 export function createApp(options: { serveStatic?: boolean } = {}): Express {
   const app = express();
@@ -94,16 +85,22 @@ export function createApp(options: { serveStatic?: boolean } = {}): Express {
   app.post('/api/site-config', async (req, res) => {
     try {
       const repoPath = String(req.body.repoPath ?? '').trim();
-      if (!repoPath || !isValidRepo(repoPath)) {
-        res.status(400).json({ error: '无效的博客仓库路径' });
+      if (!repoPath) {
+        res.status(400).json({ error: '请选择本地站点目录' });
         return;
       }
+      const initialized = ensureSiteRepo(repoPath);
       await writeSiteConfig({ repoPath, autoCreated: false });
       process.env.SITE_REPO = repoPath;
       process.env.LURO_SETUP_NEEDED = '0';
-      res.json({ ok: true, repoPath, message: '已保存，请重启应用生效' });
+      const message = initialized.created
+        ? '已初始化本地站点并保存，请重启应用生效'
+        : '已保存，请重启应用生效';
+      res.json({ ok: true, repoPath, message });
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      const message = (error as Error).message;
+      const status = message === OCCUPIED_DIR_ERROR ? 400 : 500;
+      res.status(status).json({ error: message });
     }
   });
 

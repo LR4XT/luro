@@ -1,6 +1,6 @@
 {
   "name": "luro",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Local Markdown blog editor — write, preview, and publish static HTML with Git push.",
   "author": "luro",
   "private": true,
@@ -16,10 +16,10 @@
     "preview": "vite preview",
     "postinstall": "electron-rebuild -f -w node-pty || true",
     "electron:dev": "npm run build && ELECTRON_RUN=1 electron .",
-    "build:mac": "npm run build && electron-builder --mac --x64 --arm64 && bash scripts/rename-intel-dmg.sh",
-    "build:mac:signed": "npm run build && electron-builder --mac --x64 --arm64 && bash scripts/rename-intel-dmg.sh",
-    "build:win": "npm run build && electron-builder --win --x64 --arm64",
-    "build:all": "npm run build && electron-builder --mac --x64 --arm64 --win --x64 --arm64 && bash scripts/rename-intel-dmg.sh",
+    "build:mac": "npm run build && electron-builder --mac --x64 --arm64 && bash scripts/rename-release-artifacts.sh",
+    "build:mac:signed": "npm run build && electron-builder --mac --x64 --arm64 && bash scripts/rename-release-artifacts.sh",
+    "build:win": "npm run build && electron-builder --win --x64 --arm64 && bash scripts/rename-release-artifacts.sh",
+    "build:all": "npm run build && electron-builder --mac --x64 --arm64 --win --x64 --arm64 && bash scripts/rename-release-artifacts.sh",
     "staple:dmg": "bash scripts/staple-dmg.sh"
   },
   "dependencies": {

@@ -12,12 +12,24 @@ export interface SiteNavItem {
   href: string;
 }
 
+export function resolveNavHref(href: string): string {
+  const trimmed = href.trim();
+  if (/^(https?:\/\/|mailto:|#)/i.test(trimmed)) {
+    return trimmed;
+  }
+  const base = SITE_URL.replace(/\/+$/, '');
+  if (trimmed.startsWith('/')) {
+    return `${base}${trimmed}`;
+  }
+  return `${base}/${trimmed}`;
+}
+
 export function renderNavContainer(items: SiteNavItem[]): string {
   const links = items
     .map(
       (item) => `
         
-          <a href="${escapeAttr(item.href)}" class="site-nav">
+          <a href="${escapeAttr(resolveNavHref(item.href))}" class="site-nav">
             ${escapeHtml(item.label)}
           </a>
         `,

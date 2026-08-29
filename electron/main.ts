@@ -3,6 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  canInitializeSiteRepo,
+  ensureDefaultSiteRepo,
+  ensureSiteRepo,
+  getDefaultSiteRepoPath,
+  isSiteRepo,
+  OCCUPIED_DIR_ERROR,
+} from '../server/default-site.js';
+import {
   createPty,
   getTerminalCwd,
   killAllPtys,
@@ -36,104 +44,6 @@ function getEditorRoot(): string {
   return app.getAppPath();
 }
 
-function isSiteRepo(dir: string): boolean {
-  try {
-    return (
-      fs.existsSync(path.join(dir, 'index.html')) &&
-      fs.existsSync(path.join(dir, 'post')) &&
-      fs.existsSync(path.join(dir, 'atom.xml'))
-    );
-  } catch {
-    return false;
-  }
-}
-
-function getDefaultSiteRepoPath(): string {
-  return path.join(process.env.HOME ?? '', 'Documents', 'blog-site');
-}
-
-function ensureDefaultSiteRepo(repoPath: string): { created: boolean } {
-  if (isSiteRepo(repoPath)) {
-    return { created: false };
-  }
-
-  fs.mkdirSync(path.join(repoPath, 'post'), { recursive: true });
-  fs.mkdirSync(path.join(repoPath, 'post-images'), { recursive: true });
-  fs.mkdirSync(path.join(repoPath, 'archives'), { recursive: true });
-  fs.mkdirSync(path.join(repoPath, 'tags'), { recursive: true });
-  fs.mkdirSync(path.join(repoPath, 'tag'), { recursive: true });
-
-  fs.writeFileSync(
-    path.join(repoPath, 'index.html'),
-    `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Blog</title>
-</head>
-<body>
-  <a class="site-title-container" href="https://example.com">
-    <h1 class="site-title">Blog</h1>
-  </a>
-  <div class="description"><p></p></div>
-  <div class="content-container" data-aos="fade-up">
-  </div>
-</body>
-</html>
-`,
-    'utf-8',
-  );
-
-  fs.writeFileSync(
-    path.join(repoPath, 'atom.xml'),
-    `<?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
-  <title>Blog</title>
-  <id>https://example.com/</id>
-  <updated>${new Date().toISOString()}</updated>
-  <rights>©</rights>
-</feed>
-`,
-    'utf-8',
-  );
-
-  fs.writeFileSync(
-    path.join(repoPath, 'archives', 'index.html'),
-    `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <title>Archives</title>
-</head>
-<body>
-  <div class="archives-container">
-  </div>
-</body>
-</html>
-`,
-    'utf-8',
-  );
-
-  fs.writeFileSync(
-    path.join(repoPath, 'tags', 'index.html'),
-    `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <title>Tags</title>
-</head>
-<body>
-  <div class="tags-container"></div>
-</body>
-</html>
-`,
-    'utf-8',
-  );
-
-  return { created: true };
-}
-
 function readSiteRepoFromConfig(userData: string): string | null {
   const siteFile = path.join(userData, '.credentials', 'site.json');
   try {
@@ -141,11 +51,14 @@ function readSiteRepoFromConfig(userData: string): string | null {
       repoPath?: string;
       autoCreated?: boolean;
     };
-    if (site.repoPath && isSiteRepo(site.repoPath)) {
+    if (!site.repoPath) return null;
+    const resolved = path.resolve(site.repoPath);
+    if (isSiteRepo(resolved) || canInitializeSiteRepo(resolved)) {
+      ensureSiteRepo(resolved);
       if (site.autoCreated) {
         process.env.LURO_SETUP_NEEDED = '1';
       }
-      return path.resolve(site.repoPath);
+      return resolved;
     }
   } catch {
     // ignore
@@ -179,8 +92,12 @@ function resolveSiteRepo(): string {
   process.env.LURO_SETUP_NEEDED = '0';
   extendPath();
 
-  if (process.env.SITE_REPO && isSiteRepo(process.env.SITE_REPO)) {
-    return path.resolve(process.env.SITE_REPO);
+  if (process.env.SITE_REPO) {
+    const fromEnv = path.resolve(process.env.SITE_REPO);
+    if (isSiteRepo(fromEnv) || canInitializeSiteRepo(fromEnv)) {
+      ensureSiteRepo(fromEnv);
+      return fromEnv;
+    }
   }
 
   const configured = readSiteRepoFromConfig(app.getPath('userData'));
@@ -238,30 +155,30 @@ async function bootstrap(): Promise<void> {
 
   ipcMain.handle('pick-folder', async () => {
     const options = {
-      title: '选择博客静态站点目录',
-      message: '请选择包含 index.html、post/ 和 atom.xml 的仓库目录',
+      title: '选择博客站点目录',
+      message: '可选择空文件夹（将自动初始化），或已有的静态站点仓库',
       defaultPath: getDefaultSiteRepoPath(),
-      properties: ['openDirectory' as const],
+      properties: ['openDirectory' as const, 'createDirectory' as const],
     };
     const result = mainWindow
       ? await dialog.showOpenDialog(mainWindow, options)
       : await dialog.showOpenDialog(options);
     if (result.canceled || !result.filePaths[0]) return null;
     const dir = result.filePaths[0];
-    if (!isSiteRepo(dir)) {
-      const boxOptions = {
-        type: 'warning' as const,
-        message: '所选目录不是有效的博客仓库',
-        detail: '请选择包含 index.html、post/ 和 atom.xml 的目录。',
-      };
-      if (mainWindow) {
-        await dialog.showMessageBox(mainWindow, boxOptions);
-      } else {
-        await dialog.showMessageBox(boxOptions);
-      }
-      return null;
+    if (isSiteRepo(dir) || canInitializeSiteRepo(dir)) {
+      return dir;
     }
-    return dir;
+    const boxOptions = {
+      type: 'warning' as const,
+      message: '无法使用所选目录',
+      detail: OCCUPIED_DIR_ERROR,
+    };
+    if (mainWindow) {
+      await dialog.showMessageBox(mainWindow, boxOptions);
+    } else {
+      await dialog.showMessageBox(boxOptions);
+    }
+    return null;
   });
 
   ipcMain.handle('relaunch-app', () => {

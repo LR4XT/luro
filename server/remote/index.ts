@@ -1,4 +1,10 @@
 import { resetGit, ensureGit } from '../utils/git.js';
+import { getRepoRoot, refreshSiteMeta, SITE_URL } from '../config.js';
+import {
+  githubPagesUrlFromRepo,
+  isPlaceholderSiteUrl,
+  rewriteSiteUrlInRepo,
+} from '../site-url.js';
 import {
   buildOriginUrl,
   getRemoteConfigPublic,
@@ -35,6 +41,11 @@ export async function saveAndApplyRemoteConfig(input: RemoteConfigInput): Promis
   const config = await saveRemoteConfig(input);
   resetGit();
   const remoteUrl = await applyRemoteToOrigin();
+  const pagesUrl = githubPagesUrlFromRepo(config.repoUrl);
+  if (pagesUrl && isPlaceholderSiteUrl(SITE_URL)) {
+    await rewriteSiteUrlInRepo(getRepoRoot(), SITE_URL, pagesUrl);
+    refreshSiteMeta();
+  }
   return { config, remoteUrl };
 }
 

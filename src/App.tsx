@@ -93,7 +93,6 @@ export default function App() {
   const [tags, setTags] = useState<string[]>([]);
   const [featureImage, setFeatureImage] = useState('');
   const [markdown, setMarkdown] = useState(EMPTY_MARKDOWN);
-  const [setupNeeded, setSetupNeeded] = useState(false);
   const [siteRepoPath, setSiteRepoPath] = useState('');
 
   // Reserved for future structured op feedback; Terminal is now a real shell.
@@ -221,7 +220,6 @@ export default function App() {
       .then(({ setupNeeded: needed, repoRoot, config }) => {
         setSiteRepoPath(config?.repoPath || repoRoot || '');
         if (forceSetup || needed) {
-          setSetupNeeded(true);
           setNav('setting');
         }
       })
@@ -280,7 +278,7 @@ export default function App() {
   };
 
   const handleSelectSiteTheme = async (id: string) => {
-    if (id === activeSiteThemeId || applyingSiteTheme) return;
+    if (applyingSiteTheme) return;
     setApplyingSiteTheme(true);
     setError('');
     appendLog({ level: 'info', action: 'Theme', message: '正在切换网站主题…' });
@@ -505,7 +503,6 @@ export default function App() {
             syncMessage={syncMessage}
             themeName={siteThemes.find((theme) => theme.id === activeSiteThemeId)?.name}
             syncing={syncing}
-            setupNeeded={setupNeeded}
             onSync={runSync}
             onSaved={refreshGitStatus}
           />

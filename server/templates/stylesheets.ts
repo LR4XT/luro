@@ -1,12 +1,6 @@
 import { SITE_URL } from '../config.js';
-import type { SiteThemePreset } from '../themes/index.js';
+import { buildThemeLinks, type ThemeStyles } from '../themes/links.js';
 
-export function renderStylesheetLinks(
-  preset: Pick<SiteThemePreset, 'siteStylesheet' | 'themeOverlay'>,
-): string {
-  const mainLink = `<link rel="stylesheet" href="${SITE_URL}/${preset.siteStylesheet}">`;
-  if (!preset.themeOverlay) {
-    return mainLink;
-  }
-  return `${mainLink}\n<link rel="stylesheet" href="${SITE_URL}/${preset.themeOverlay}">`;
+export function renderStylesheetLinks(preset: ThemeStyles): string {
+  return buildThemeLinks(preset, SITE_URL);
 }

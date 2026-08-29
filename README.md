@@ -1,6 +1,6 @@
 # luro
 
-本地 Markdown 博客编辑器（当前版本 **0.2.0**）。用 Markdown 写文章，生成与 GitHub Pages 静态博客（如 [lr4xt.com](https://lr4xt.com)）相同结构的 HTML，再 `git push` 到个人仓库对外访问。
+本地 Markdown 博客编辑器（当前版本 **0.3.0**）。用 Markdown 写文章，生成与 GitHub Pages 静态博客（如 [lr4xt.com](https://lr4xt.com)）相同结构的 HTML，再 `git push` 到个人仓库对外访问。
 
 也可打包为独立桌面应用，不必单独开浏览器。
 
@@ -11,7 +11,7 @@
 | 桌面应用 · macOS | **macOS 11 Big Sur 及以上**，Apple Silicon（arm64）与 Intel（x64） |
 | 桌面应用 · Windows | **Windows 10 / 11**，x64 与 ARM64 |
 | 从源码开发 / 打包 | **Node.js 18+**、已安装 **Git** |
-| 站点仓库 | 含 `index.html`、`post/`、`atom.xml` 的 GitHub Pages 静态站点（可指向已有仓库，也可使用首次启动自动创建的本地站点） |
+| 站点仓库 | 空文件夹、新建的 GitHub 仓库，或已有 GitHub Pages 静态站点（含 `index.html`、`post/`、`atom.xml`） |
 
 未提供 Linux 桌面包。Electron 33 已不再支持 macOS 10.15 及更早系统。
 
@@ -46,7 +46,7 @@
 
 ### 设置与 Git
 
-- **Site repository**：选择本地静态站点目录；首次启动若未配置，会在 `~/Documents/blog-site` 建一份空站点并引导到设置页
+- **Site repository**：选择本地静态站点目录（空文件夹会自动生成站点并 `git init`，也可指向已有 GitHub Pages 仓库）；首次启动若未配置，会在 `~/Documents/blog-site` 建一份空站点并引导到设置页
 - **Remote repository**：HTTP（用户名 + GitHub Token）或 SSH（私钥，可选口令），凭据保存在本机，无需在终端 `ssh-add`
 - 保存后可 **Test connection**、**Sync from remote**；文章列表里可单独 **Push**
 
@@ -64,17 +64,17 @@ npm install
 npm run electron:dev
 ```
 
-首次启动会使用或创建 `~/Documents/blog-site`；已有 GitHub Pages 仓库时，到 **Setting → Site repository** 改路径并保存（应用会重启）。
+首次启动会使用或创建 `~/Documents/blog-site`；也可到 **Setting → Site repository** 选择空文件夹或已有 GitHub Pages 仓库，保存后应用会重启。
 
 桌面版内嵌 Express，自动占用空闲端口，不再固定 `3456`。
 
 ### 打包
 
 ```bash
-# macOS：Apple Silicon + Intel DMG（Intel 产物文件名带 -intel）
+# macOS：Apple Silicon + Intel DMG（产物文件名带 -arm / -intel）
 npm run build:mac
 
-# Windows：x64 + ARM64 zip
+# Windows：x64 + ARM64 zip（产物文件名带 -intel-win / -arm-win）
 npm run build:win
 
 # 两个平台一起打
@@ -83,8 +83,8 @@ npm run build:all
 
 产物在 `release/`：
 
-- macOS：`luro-<version>-arm64.dmg`、`luro-<version>-intel.dmg`
-- Windows：`luro-<version>-x64-win.zip`、`luro-<version>-arm64-win.zip`
+- macOS：`luro-<version>-arm.dmg`、`luro-<version>-intel.dmg`
+- Windows：`luro-<version>-intel-win.zip`、`luro-<version>-arm-win.zip`
 
 已签名 / 公证的正式包一般可直接打开。若你本地打的是未签名包，macOS 可能提示「已损坏」：
 
@@ -178,7 +178,7 @@ blog-site/
 
 ## 注意事项
 
-- 有效站点目录必须包含 `index.html`、`post/`、`atom.xml`
+- 站点目录可以是空文件夹（会自动初始化），或已包含 `index.html`、`post/`、`atom.xml` 的仓库
 - 标签页由编辑器自动维护，一般不必再手写 `tag/` 索引
 - 站点主题要 push 之后，GitHub Pages 上才会变；编辑器浅色 / 深色只影响本机 UI
 - 内置终端只在桌面应用中可用

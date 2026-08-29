@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  canInitializeSiteRepo,
   ensureDefaultSiteRepo,
+  ensureSiteRepo,
   getDefaultSiteRepoPath,
   isSiteRepo,
 } from './default-site.js';
@@ -19,7 +21,7 @@ function resolveEditorRoot(): string {
   }
 
   const fromDist = path.resolve(__dirname, '..', '..');
-  if (fs.existsSync(path.join(fromDist, 'config', 'tags.json'))) {
+  if (fs.existsSync(path.join(fromDist, 'config', 'themes.json'))) {
     return fromDist;
   }
 
@@ -41,8 +43,11 @@ function readConfiguredRepoPath(): string | null {
   const siteFile = path.join(USER_DATA_ROOT, '.credentials', 'site.json');
   try {
     const site = JSON.parse(fs.readFileSync(siteFile, 'utf-8')) as { repoPath?: string };
-    if (site.repoPath && isSiteRepo(site.repoPath)) {
-      return path.resolve(site.repoPath);
+    if (!site.repoPath) return null;
+    const resolved = path.resolve(site.repoPath);
+    if (isSiteRepo(resolved) || canInitializeSiteRepo(resolved)) {
+      ensureSiteRepo(resolved);
+      return resolved;
     }
   } catch {
     // ignore
@@ -53,10 +58,11 @@ function readConfiguredRepoPath(): string | null {
 function resolveRepoRoot(): string {
   if (process.env.SITE_REPO) {
     const configured = path.resolve(process.env.SITE_REPO);
-    if (!isSiteRepo(configured)) {
-      throw new Error(`SITE_REPO 不是有效的静态站点目录: ${configured}`);
+    if (isSiteRepo(configured) || canInitializeSiteRepo(configured)) {
+      ensureSiteRepo(configured);
+      return configured;
     }
-    return configured;
+    throw new Error(`SITE_REPO 不是有效的静态站点目录: ${configured}`);
   }
 
   const configured = readConfiguredRepoPath();
@@ -108,9 +114,16 @@ export function getRepoRoot(): string {
 
 export const REPO_ROOT = getRepoRoot();
 const siteMeta = detectSiteMeta(REPO_ROOT);
-export const SITE_URL = siteMeta.url;
-export const SITE_TITLE = siteMeta.title;
-export const SITE_DESCRIPTION = siteMeta.description;
+export let SITE_URL = siteMeta.url;
+export let SITE_TITLE = siteMeta.title;
+export let SITE_DESCRIPTION = siteMeta.description;
+
+export function refreshSiteMeta(): void {
+  const meta = detectSiteMeta(getRepoRoot());
+  SITE_URL = meta.url;
+  SITE_TITLE = meta.title;
+  SITE_DESCRIPTION = meta.description;
+}
 
 export const POST_DIR = path.join(REPO_ROOT, 'post');
 export const POST_IMAGES_DIR = path.join(REPO_ROOT, 'post-images');
