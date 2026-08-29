@@ -1,6 +1,6 @@
 # LR Blog Editor
 
-本地 Markdown 博客编写器，生成与 [lr4xt.com](https://lr4xt.com) 相同结构的静态 HTML，并支持推送到 `git@github.com:LR4XT/lr4xt.github.io.git`。
+本地 Markdown 博客编写器，生成与 [lr4xt.com](https://lr4xt.com) 相同结构的静态 HTML，并支持推送到你的个人仓库（类似 `git@github.com:LR4XT/lr4xt.github.io.git`），通过github pages提供对外访问功能。
 
 ## 功能
 
@@ -14,8 +14,7 @@
 
 ## 后续规划
 
-- [x] 打包为 macOS 桌面应用（Electron）
-- [x] 博客主题切换
+- [x] 更多博客主题切换
 
 ## macOS 桌面应用
 
